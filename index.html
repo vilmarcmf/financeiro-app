@@ -99,12 +99,6 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
 .b-dep{background:rgba(0,200,150,.15);color:var(--gr)}
 .b-ret{background:rgba(255,77,109,.15);color:var(--dg)}
 .b-edt{background:rgba(0,153,255,.15);color:var(--bl)}
-.btg{background:linear-gradient(135deg,#1a1f35,#1e2a45);border:1px solid var(--bl);border-radius:var(--r);padding:14px 16px;margin-bottom:11px}
-.btg .t{font-size:12px;color:var(--bl);font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px}
-.btg .r{display:flex;justify-content:space-between;padding:5px 0;font-size:12px}
-.btg .r b{font-size:14px;color:var(--bl)}
-.btg .r.tt{border-top:1px solid var(--bd);margin-top:8px;padding-top:8px;font-size:13px;font-weight:800}
-.btg .r.tt b{font-size:16px;color:var(--ac)}
 .hist{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--bd)}
 .hist:last-child{border-bottom:none}
 .hist .d{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
@@ -149,7 +143,7 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
 <!-- DASHBOARD -->
 <div class="pg on" id="pg-dash">
   <div class="hero">
-    <div class="t">Saldo livre do mês</div>
+    <div class="t">Saldo disponível para gastos</div>
     <div class="v ok" id="dVal">R$ 0,00</div>
     <div class="s" id="dSub">Informe a receita no Dia 10</div>
     <div class="sem ok" id="dSem"><span>🟢</span><span>Aguardando dados</span></div>
@@ -159,6 +153,10 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
     <div class="gi"><div class="i">🏠</div><div class="n">Fixas</div><div class="v" id="dFix">R$ 0</div></div>
     <div class="gi"><div class="i">💳</div><div class="n">Cartões</div><div class="v" id="dCard">R$ 0</div></div>
     <div class="gi"><div class="i">💸</div><div class="n">Extras</div><div class="v" id="dExt">R$ 0</div></div>
+  </div>
+  <div class="card">
+    <div class="lbl">Total acumulado em reservas</div>
+    <div class="v" id="totalReservasDash" style="font-size:22px; color:var(--bl)">R$ 0</div>
   </div>
   <div class="card">
     <div class="lbl">Comprometimento da receita</div>
@@ -171,6 +169,13 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
     <div><div class="t">Liquidez total</div><div class="sub">Soma das contas</div></div>
     <div class="v" id="dLiq">R$ 0</div>
   </div>
+  
+  <!-- Card de alocação recomendada vs realizada -->
+  <div class="card" id="allocCard">
+    <div class="lbl">Alocação recomendada vs. realizada</div>
+    <div id="allocContent"></div>
+  </div>
+
   <div class="lbl" style="margin:14px 0 9px">Alertas</div>
   <div id="dAls"></div>
 </div>
@@ -204,14 +209,8 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
   <button class="btn a" id="bConfirm">Confirmar e salvar</button>
 </div>
 
-<!-- RESERVAS -->
+<!-- RESERVAS (sem o card BTG) -->
 <div class="pg" id="pg-resv">
-  <div class="btg">
-    <div class="t">🏦 BTG — Visão geral</div>
-    <div class="r"><span>Conta corrente BTG</span><b id="rCC">R$ 0</b></div>
-    <div class="r"><span>Total em reservas</span><b id="rTot">R$ 0</b></div>
-    <div class="r tt"><span>Total BTG</span><b id="rGer">R$ 0</b></div>
-  </div>
   <div class="lbl" style="margin-bottom:9px">🎯 Reservas (clique nos campos para editar)</div>
   <div id="rBox"></div>
 </div>
@@ -262,10 +261,8 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
 <script>
 'use strict';
 
-// CONTAS E CONFIGURAÇÕES
 const CONTAS = ['Caixa','BTG','Mercado Pago','Inter','Nubank'];
 const CARTOES = ['BTG','Inter','Nubank'];
-// Fixas essenciais para cálculo da reserva de emergência (nomes exatos)
 const FIXAS_ESSENCIAIS = ['Energia', 'Condomínio Apto', 'Internet', 'Rede Celular'];
 const FIXAS_COMPLETAS = [
   ['Financiamento Apto','Financiamento',800],
@@ -278,7 +275,6 @@ const FIXAS_COMPLETAS = [
   ['Plano de TV','Assinaturas',30]
 ];
 
-// Definição das reservas (agora com os novos itens)
 const RES_DEF = [
   { id: 'edu', nome: 'Educação Pessoal', meta: 0, sugestaoMensal: 0, saldo: 0 },
   { id: 'pre', nome: 'Presente pra mim', meta: 0, sugestaoMensal: 0, saldo: 0 },
@@ -298,7 +294,6 @@ const CATS = {
   ext: ['Alimentação','Transporte','Saúde','Lazer','Vestuário','Presentes','Manutenção','Outros']
 };
 
-// Ícones reduzidos (apenas um por tipo)
 const ICON = {
   Receita: '💵',
   'Conta Fixa': '🏠',
@@ -316,7 +311,6 @@ const ICOL = {
   EdicaoSaldo: 'rgba(0,153,255,.1)'
 };
 
-// STORAGE
 const K = () => { const d = new Date(); return `fin_${d.getFullYear()}_${d.getMonth()+1}`; };
 const store = {
   lanc: () => JSON.parse(localStorage.getItem(K()) || '[]'),
@@ -336,7 +330,6 @@ const store = {
   setLastMonth: (y,m) => localStorage.setItem('fin_last_month', `${y}-${m}`)
 };
 
-// HELPERS
 const $ = id => document.getElementById(id);
 const fmt = v => 'R$ ' + (+v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 const fmtD = s => s ? s.slice(8,10)+'/'+s.slice(5,7) : '';
@@ -357,66 +350,39 @@ function bindMoneyInputs() {
 let toastT;
 function toast(m, d=2500){ let t=$('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),d); }
 
-// Adiciona registro genérico de atualização no histórico
 function addEditHistory(itemNome) {
   let arr = store.lanc();
-  arr.unshift({
-    id: Date.now(),
-    tipo: 'EdicaoSaldo',
-    cat: 'Atualização',
-    desc: `${itemNome} foi atualizado`,
-    valor: 0,
-    data: today()
-  });
+  arr.unshift({ id: Date.now(), tipo: 'EdicaoSaldo', cat: 'Atualização', desc: `${itemNome} foi atualizado`, valor: 0, data: today() });
   store.setLanc(arr);
-  rHist(); // atualiza histórico se estiver visível
+  rHist();
 }
 
-// Calcula soma das fixas essenciais do mês atual
 function getTotalFixasEssenciais() {
   const lancamentos = store.lanc();
   let total = 0;
   for (let l of lancamentos) {
-    if (l.tipo === 'Conta Fixa' && FIXAS_ESSENCIAIS.includes(l.desc)) {
-      total += l.valor;
-    }
+    if (l.tipo === 'Conta Fixa' && FIXAS_ESSENCIAIS.includes(l.desc)) total += l.valor;
   }
   return total;
 }
 
-// Atualiza a meta da reserva de emergência baseada nas fixas essenciais (6x total mensal * 12 = 72x? Vamos fazer: metaAnual = (totalMensal * 6) * 12)
-// Mas o usuário disse: "meta dele deve ser 6x o que eu tenho de conta fixas essenciais por mês". 
-// Então o valor alvo é 6 * soma_mensal. Para a barra de progresso (que é anualizada), vamos manter metaAnual = (6 * soma_mensal) * 12? 
-// Para não complicar, vou definir: a meta exibida será o valor total a acumular (6 * soma_mensal). E a barra de progresso compara saldo atual com esse valor.
-// No entanto, o campo "meta anual" no app é anual. Vou fazer: metaAnual = (6 * soma_mensal) * 12? Não, seria estranho. 
-// Vou seguir o que ele disse: a reserva deve acumular 6 vezes as despesas essenciais mensais. Portanto, o valor alvo é 6 * soma_mensal. 
-// Para manter coerência com o conceito de "meta anual", vou considerar que essa reserva não tem meta anual, mas sim um valor alvo. 
-// Vou exibir apenas a barra de progresso usando esse valor alvo, e o campo de meta anual ficará oculto ou calculado automaticamente.
-// Simplificando: no código, para a reserva de emergência, o campo "meta" será dinâmico = 6 * soma_mensal (e a sugestão mensal fica 0).
-// Quando o usuário editar uma fixa essencial, chamaremos atualizaMetaEmergencia().
 function atualizaMetaEmergencia() {
   let totalMensal = getTotalFixasEssenciais();
-  let metaAlvo = totalMensal * 6; // 6x o valor mensal
+  let metaAlvo = totalMensal * 12;  // x12 conforme solicitado
   let res = store.res();
   let emerg = res.find(r => r.id === 'emergencia');
-  if (emerg) {
-    if (emerg.meta !== metaAlvo) {
-      emerg.meta = metaAlvo;
-      store.setRes(res);
-      // Não adicionar histórico a cada atualização automática, apenas quando houver mudança real vinda de edição.
-      // Mas para não poluir, não adicionaremos histórico aqui.
-    }
+  if (emerg && emerg.meta !== metaAlvo) {
+    emerg.meta = metaAlvo;
+    store.setRes(res);
   }
 }
 
-// Chama após qualquer alteração nas fixas essenciais (edição de lançamento ou dia10)
 function afterFixasChange() {
   atualizaMetaEmergencia();
-  rResv(); // recarrega reservas se estiver visível
+  rResv();
   rDash();
 }
 
-// CALC
 function calc() {
   let it = store.lanc();
   let s = {};
@@ -430,7 +396,23 @@ function calc() {
 }
 const liq = () => CONTAS.reduce((t,c) => t + (+store.saldos()[c] || 0), 0);
 
-// DASHBOARD
+function totalReservas() {
+  return store.res().reduce((acc, r) => acc + r.saldo, 0);
+}
+
+// Função para calcular depósitos do mês em cada reserva (para alocação)
+function getDepositosReservasMes() {
+  const lancamentos = store.lanc();
+  let depositos = { edu: 0, outros: 0 }; // edu = Educação Pessoal, outros = demais (exceto emergência? Vou considerar todos exceto educação e emergência para "investimento geral")
+  for (let l of lancamentos) {
+    if (l.tipo === 'Investimento' && l.valor > 0) {
+      if (l.desc.includes('Educação Pessoal')) depositos.edu += l.valor;
+      else if (!l.desc.includes('Emergência')) depositos.outros += l.valor;
+    }
+  }
+  return depositos;
+}
+
 function rDash() {
   let { rec, fix, ext, card, disp, meta } = calc();
   let pct = rec > 0 ? Math.min(((fix+card+ext+meta)/rec)*100, 100) : 0;
@@ -461,6 +443,40 @@ function rDash() {
   f.style.width = pct + '%';
   f.className = 'fill ' + (pct > 90 ? 'dg' : pct > 80 ? 'wr' : 'ok');
   $('dLiq').textContent = fmt(liq());
+
+  // Total reservas no dashboard
+  let totalRes = totalReservas();
+  let totalResEl = $('#totalReservasDash');
+  if (totalResEl) totalResEl.textContent = fmt(totalRes);
+
+  // Alocação recomendada vs realizada
+  if (rec > 0) {
+    let despesasTotais = fix + card + ext;
+    let pctContas = Math.min((despesasTotais / rec) * 100, 100);
+    let depositos = getDepositosReservasMes();
+    let pctEduc = Math.min((depositos.edu / rec) * 100, 100);
+    let pctInvest = Math.min((depositos.outros / rec) * 100, 100);
+    let pctTorrar = Math.max(0, 100 - pctContas - pctEduc - pctInvest);
+    // Recomendado: 55, 5, 30, 10
+    let recContas = 55, recEduc = 5, recInvest = 30, recTorrar = 10;
+    let html = `
+      <div style="margin-bottom:8px; font-size:12px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Contas e viver presente:</span><span>${pctContas.toFixed(1)}% / ${recContas}%</span></div>
+        <div class="bar"><div class="fill ok" style="width:${Math.min(pctContas,100)}%; background:${pctContas>recContas? 'var(--wr)':'var(--ac)'}"></div></div>
+        <div style="display:flex; justify-content:space-between; margin:8px 0 4px;"><span>Educação pessoal:</span><span>${pctEduc.toFixed(1)}% / ${recEduc}%</span></div>
+        <div class="bar"><div class="fill" style="width:${Math.min(pctEduc,100)}%; background:${pctEduc>recEduc? 'var(--wr)':'var(--ac)'}"></div></div>
+        <div style="display:flex; justify-content:space-between; margin:8px 0 4px;"><span>Investimento geral:</span><span>${pctInvest.toFixed(1)}% / ${recInvest}%</span></div>
+        <div class="bar"><div class="fill" style="width:${Math.min(pctInvest,100)}%; background:${pctInvest>recInvest? 'var(--wr)':'var(--ac)'}"></div></div>
+        <div style="display:flex; justify-content:space-between; margin:8px 0 4px;"><span>Torrar:</span><span>${pctTorrar.toFixed(1)}% / ${recTorrar}%</span></div>
+        <div class="bar"><div class="fill" style="width:${Math.min(pctTorrar,100)}%; background:${pctTorrar>recTorrar? 'var(--wr)':'var(--ac)'}"></div></div>
+      </div>
+      <div style="font-size:11px; color:var(--mt); margin-top:6px;">* Torrar = saldo livre após despesas e investimentos.</div>
+    `;
+    $('#allocContent').innerHTML = html;
+  } else {
+    $('#allocContent').innerHTML = '<div style="text-align:center; color:var(--mt);">Informe a receita para ver a alocação.</div>';
+  }
+
   let als = [];
   if (rec === 0) als.push(['wr','Registre a receita no Dia 10.']);
   else {
@@ -473,7 +489,6 @@ function rDash() {
   $('dAls').innerHTML = als.map(([t,m]) => `<div class="al ${t}"><span>${t==='ok'?'✅':t==='wr'?'⚠️':'🔴'}</span><span>${m}</span></div>`).join('');
 }
 
-// DIA 10
 function getExistingValue(tipo, desc) { return store.lanc().find(l => l.tipo===tipo && l.desc===desc)?.valor || 0; }
 function rD10() {
   let s = store.saldos();
@@ -502,7 +517,6 @@ function confirmD10() {
   let saldoTouched = false;
   for (let c of CONTAS) { let el = $('fc_'+cid(c)); if (el && el.value !== '') { s[c] = parseMoney(el.value); saldoTouched = true; } }
   store.setSaldos(s);
-  // Processar fixas
   FIXAS_COMPLETAS.forEach((f,i) => { let v = parseMoney($('ff_'+i)?.value); if (v > 0) items.push({ id: Date.now()+10+i, tipo: 'Conta Fixa', cat: f[1], desc: f[0], valor: v, data: d }); });
   CARTOES.forEach((c,i) => { let v = parseMoney($('fk_'+c)?.value); if (v > 0) items.push({ id: Date.now()+30+i, tipo: 'Cartão', cat: c, desc: `Cartão ${c}`, valor: v, data: d }); });
   if (!items.length && !saldoTouched) { toast('Preencha pelo menos um valor'); confirmLock=false; $('bConfirm').disabled=false; $('bConfirm').style.opacity='1'; return; }
@@ -510,7 +524,6 @@ function confirmD10() {
   arr = arr.filter(e => !items.some(n => e.tipo === n.tipo && e.desc === n.desc && e.data === n.data));
   arr.push(...items);
   store.setLanc(arr);
-  // Atualizar meta da reserva de emergência
   atualizaMetaEmergencia();
   let now = new Date(); store.setLastMonth(now.getFullYear(), now.getMonth()+1);
   rDash(); rHist(); toast(`✅ ${items.length} lançamento(s) salvo(s)! Meta: ${fmt(novaMeta)}`);
@@ -518,13 +531,10 @@ function confirmD10() {
   go('dash');
 }
 
-// RESERVAS (com suporte aos novos campos)
 function updateReservaField(id, field, value) {
   let res = store.res();
   let r = res.find(x => x.id === id);
-  if (!r) return;
-  let oldValue = r[field];
-  if (oldValue === value) return;
+  if (!r || r[field] === value) return;
   r[field] = value;
   store.setRes(res);
   let nomeItem = r.nome;
@@ -533,19 +543,13 @@ function updateReservaField(id, field, value) {
   else if (field === 'saldo') nomeItem = `Saldo da ${r.nome}`;
   addEditHistory(nomeItem);
   rResv();
-  if (field !== 'saldo') rDash(); // se alterou saldo, atualiza dashboard e histórico já foi
-  else rDash();
+  rDash();
 }
 function rResv() {
   let res = store.res();
   let totSaldo = res.reduce((s,r) => s + r.saldo, 0);
-  let cc = +store.saldos()['BTG'] || 0;
-  $('rCC').textContent = fmt(cc);
-  $('rTot').textContent = fmt(totSaldo);
-  $('rGer').textContent = fmt(cc + totSaldo);
   $('rBox').innerHTML = res.map(r => {
     let pct = r.meta > 0 ? Math.min(r.saldo/r.meta*100, 100) : 0;
-    // Para Bitcoin, exibir sugestão mensal fixa (mas o campo é editável)
     let showSugestao = (r.id !== 'acoes' && r.id !== 'aposentadoria' && r.id !== 'emergencia') || r.id === 'bitcoin';
     return `<div class="res" data-id="${r.id}">
       <div class="hd">
@@ -566,7 +570,6 @@ function rResv() {
       </div>
     </div>`;
   }).join('');
-  // eventos para edição dos campos
   document.querySelectorAll('.meta-annual').forEach(inp => {
     let id = inp.closest('.res').dataset.id;
     inp.addEventListener('blur', () => { let newVal = parseMoney(inp.value); if (newVal >= 0) updateReservaField(id, 'meta', newVal); });
@@ -630,7 +633,6 @@ function confirmEdt() {
   toast('✅ Saldo atualizado');
 }
 
-// LANÇAR
 let lTipo = 'rec';
 function rLancTabs() {
   let isCts = lTipo === 'cts';
@@ -670,7 +672,6 @@ function saveSaldos() {
   toast('✅ Saldos atualizados!');
 }
 
-// HISTÓRICO
 function rHist() {
   let it = store.lanc();
   let sorted = [...it].sort((a,b) => b.id - a.id);
@@ -697,7 +698,7 @@ function deleteLanc(id) {
   let arr = store.lanc().filter(l => l.id != id);
   store.setLanc(arr);
   $('mEditLanc').classList.remove('on');
-  afterFixasChange(); // pois pode ter sido excluída uma fixa essencial
+  afterFixasChange();
   rDash(); rHist();
   toast('🗑 Removido');
 }
@@ -715,12 +716,11 @@ function updateLanc() {
   store.setLanc(arr);
   addEditHistory(`Lançamento "${old.desc}" foi atualizado`);
   $('mEditLanc').classList.remove('on');
-  afterFixasChange(); // atualiza meta de emergência se for fixa essencial
+  afterFixasChange();
   rDash(); rHist();
   toast('✏️ Atualizado');
 }
 
-// NAVEGAÇÃO
 function go(p) {
   document.querySelectorAll('.pg').forEach(x => x.classList.remove('on'));
   document.querySelectorAll('#nav button').forEach(x => x.classList.remove('on'));
@@ -733,7 +733,7 @@ function go(p) {
   else if (p === 'lanc') rLancTabs();
 }
 
-// EVENTOS
+// Eventos
 $('nav').addEventListener('click', e => { let b = e.target.closest('button[data-p]'); if (b) go(b.dataset.p); });
 $('lTabs').addEventListener('click', e => { let b = e.target.closest('.tab'); if (!b) return; document.querySelectorAll('#lTabs .tab').forEach(x => x.classList.remove('on')); b.classList.add('on'); lTipo = b.dataset.t; rLancTabs(); });
 $('hBox').addEventListener('click', e => { let ed = e.target.closest('.edit-lanc'), dl = e.target.closest('.del-lanc'); if (ed) { let id = ed.closest('.hist').dataset.id; openEditLanc(id); } else if (dl) { let id = dl.closest('.hist').dataset.id; deleteLanc(id); } });
@@ -759,17 +759,6 @@ $('bClear').addEventListener('click', () => {
   }
 });
 
-// INIT
-(function init() {
-  let n = new Date(); $('hMonth').textContent = n.toLocaleDateString('pt-BR', {month:'long', year:'numeric'});
-  $('lData').value = today();
-  $('lCat').innerHTML = CATS.rec.map(c => `<option>${c}</option>`).join('');
-  bindMoneyInputs();
-  atualizaMetaEmergencia(); // calcula a meta inicial da reserva de emergência
-  rDash();
-  checkNewMonth();
-})();
-
 function checkNewMonth() {
   let now = new Date(), y = now.getFullYear(), m = now.getMonth()+1, cur = `${y}-${m}`, last = store.getLastMonth();
   if (last !== cur) {
@@ -778,6 +767,16 @@ function checkNewMonth() {
     else toast('📅 Boas vindas ao novo mês! Revise seus dados.', 4000);
   }
 }
+
+(function init() {
+  let n = new Date(); $('hMonth').textContent = n.toLocaleDateString('pt-BR', {month:'long', year:'numeric'});
+  $('lData').value = today();
+  $('lCat').innerHTML = CATS.rec.map(c => `<option>${c}</option>`).join('');
+  bindMoneyInputs();
+  atualizaMetaEmergencia();
+  rDash();
+  checkNewMonth();
+})();
 </script>
 </body>
 </html>
