@@ -28,7 +28,8 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
 .hero{background:linear-gradient(135deg,var(--s1),#1e3448);border:1px solid var(--ac);border-radius:var(--r);padding:20px 18px;margin-bottom:11px;text-align:center}
 .hero .t{font-size:10px;color:var(--ac);font-weight:800;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px}
 .hero .v{font-size:38px;font-weight:800;letter-spacing:-2px;line-height:1;margin-bottom:5px}
-.hero .s{font-size:13px;color:var(--mt)}
+.hero .s{font-size:13px;color:var(--mt);cursor:pointer}
+.hero .s:hover{text-decoration:underline}
 .v.ok{color:var(--ac)}.v.wr{color:var(--wr)}.v.dg{color:var(--dg)}
 .sem{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:10px;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:700}
 .sem.ok{background:rgba(0,200,150,.12);color:var(--gr)}
@@ -334,7 +335,9 @@ const store = {
     let m = localStorage.getItem('fin_meta');
     return m !== null ? parseFloat(m) : 700;
   },
-  setMeta: v => localStorage.setItem('fin_meta', v.toString())
+  setMeta: v => localStorage.setItem('fin_meta', v.toString()),
+  getLastMonth: () => localStorage.getItem('fin_last_month'),
+  setLastMonth: (y,m) => localStorage.setItem('fin_last_month', `${y}-${m}`)
 };
 
 /* ── HELPERS ────────────────────────────────── */
@@ -367,12 +370,33 @@ function bindMoneyInputs() {
 }
 
 let toastT;
-function toast(m){
+function toast(m, duration = 2500){
   const t = $('toast');
   t.textContent = m;
   t.classList.add('on');
   clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.remove('on'), 2400);
+  toastT = setTimeout(() => t.classList.remove('on'), duration);
+}
+
+/* ── ALERTA DE NOVO MÊS ─────────────────────── */
+function checkNewMonth() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // 1-12
+  const currentMonthKey = `${year}-${month}`;
+  const lastMonth = store.getLastMonth();
+  
+  if (lastMonth !== currentMonthKey) {
+    // Novo mês detectado
+    store.setLastMonth(year, month);
+    // Verificar se já existem lançamentos para este mês (para não avisar se a pessoa já configurou)
+    const lancamentos = store.lanc();
+    if (lancamentos.length === 0) {
+      toast('📅 Novo mês! Vá em "Dia 10" para configurar sua receita e contas.', 5000);
+    } else {
+      toast('📅 Boas vindas ao novo mês! Revise seus dados no "Dia 10" se necessário.', 4000);
+    }
+  }
 }
 
 /* ── CALC ───────────────────────────────────── */
@@ -397,7 +421,17 @@ function rDash(){
   const v = $('dVal');
   v.textContent = fmt(disp);
   v.className = 'v ' + (disp < 0 ? 'dg' : disp < rec*0.1 && rec>0 ? 'wr' : 'ok');
-  $('dSub').innerHTML = rec > 0 ? `Receita − Fixas − Cartões − Extras − Meta ${fmt(meta)}` : 'Informe a receita no Dia 10';
+  
+  const subEl = $('dSub');
+  if (rec === 0) {
+    subEl.innerHTML = '📅 Informe a receita no Dia 10 →';
+    subEl.style.cursor = 'pointer';
+    subEl.onclick = () => go('d10');
+  } else {
+    subEl.innerHTML = `Receita − Fixas − Cartões − Extras − Meta ${fmt(meta)}`;
+    subEl.style.cursor = 'default';
+    subEl.onclick = null;
+  }
 
   const sem = $('dSem');
   if (rec === 0)        { sem.className='sem ok'; sem.innerHTML='<span>🟢</span><span>Aguardando dados</span>'; }
@@ -438,14 +472,12 @@ function getExistingValue(tipo, desc) {
 
 function rD10(){
   const s = store.saldos();
-  // Contas
   $('fContas').innerHTML = CONTAS.map(c => `
     <div class="row">
       <div class="l"><div class="n">${c}</div><div class="c">Conta corrente</div></div>
       <input type="text" id="fc_${cid(c)}" value="${(s[c] || 0).toLocaleString('pt-BR', {minimumFractionDigits:2})}" inputmode="decimal">
     </div>`).join('');
 
-  // Fixas
   $('fFixas').innerHTML = FIXAS.map((f,i) => {
     const val = getExistingValue('Conta Fixa', f[0]);
     return `<div class="row">
@@ -454,7 +486,6 @@ function rD10(){
     </div>`;
   }).join('');
 
-  // Cartões
   $('fCards').innerHTML = CARTOES.map(c => {
     const val = getExistingValue('Cartão', `Cartão ${c}`);
     return `<div class="row">
@@ -463,7 +494,6 @@ function rD10(){
     </div>`;
   }).join('');
 
-  // Meta atual
   const metaAtual = store.getMeta();
   $('fMeta').value = metaAtual.toLocaleString('pt-BR', {minimumFractionDigits:2});
 
@@ -494,10 +524,8 @@ function confirmD10(){
   const sal = parseMoney($('fSal').value);
   if (sal > 0) items.push({id:Date.now(), tipo:'Receita', cat:'Salário', desc:'Salário', valor:sal, data:d});
 
-  // Salvar meta
   const novaMeta = parseMoney($('fMeta').value);
-  if (novaMeta > 0) store.setMeta(novaMeta);
-  else if (novaMeta === 0 && $('fMeta').value !== '') store.setMeta(0);
+  if (novaMeta >= 0) store.setMeta(novaMeta);
 
   let saldoTouched = false;
   for (const c of CONTAS) {
@@ -519,10 +547,13 @@ function confirmD10(){
   if (!items.length && !saldoTouched) { toast('Preencha pelo menos um valor'); confirmLock=false; $('bConfirm').disabled=false; $('bConfirm').style.opacity='1'; return; }
 
   let arr = store.lanc();
-  // Remove lançamentos antigos do mesmo tipo/desc/data
   arr = arr.filter(e => !items.some(n => e.tipo === n.tipo && e.desc === n.desc && e.data === n.data));
   arr.push(...items);
   store.setLanc(arr);
+
+  // Atualiza o mês atual no registro de último mês (para não mostrar alerta novamente)
+  const now = new Date();
+  store.setLastMonth(now.getFullYear(), now.getMonth()+1);
 
   rDash(); rHist();
   toast(`✅ ${items.length} lançamento(s) salvo(s)! Meta: ${fmt(novaMeta)}`);
@@ -675,12 +706,9 @@ function saveSaldos(){
   toast('✅ Saldos atualizados!');
 }
 
-/* ── HISTÓRICO (com edição/exclusão) ────────── */
-let editingLancId = null;
-
+/* ── HISTÓRICO ──────────────────────────────── */
 function rHist(){
   const it = store.lanc();
-  // Ordenar do mais recente para o mais antigo (maior id primeiro)
   const sorted = [...it].sort((a,b) => b.id - a.id);
   $('hBox').innerHTML = !sorted.length
     ? '<div class="empty"><span>📋</span>Nenhum lançamento este mês</div>'
@@ -705,6 +733,7 @@ function rHist(){
       }).join('');
 }
 
+let editingLancId = null;
 function openEditLanc(id){
   const lanc = store.lanc().find(l => l.id == id);
   if (!lanc) return;
@@ -732,11 +761,9 @@ function updateLanc(){
   const index = arr.findIndex(l => l.id == editingLancId);
   if (index === -1) return;
   const oldLanc = arr[index];
-  // manter o mesmo sinal (se era despesa, continua negativo; se receita, positivo)
   let newValSigned = newVal;
   if (oldLanc.tipo === 'Despesa Extra' || oldLanc.tipo === 'Cartão' || oldLanc.tipo === 'Conta Fixa') newValSigned = -newVal;
   else if (oldLanc.tipo === 'Investimento') {
-    // manter o sinal original: se era negativo, continua negativo
     if (oldLanc.valor < 0) newValSigned = -newVal;
   }
   arr[index] = {
@@ -779,7 +806,6 @@ $('lTabs').addEventListener('click', e => {
   rLancTabs();
 });
 
-// Delegação para botões de editar/excluir no histórico
 $('hBox').addEventListener('click', e => {
   const btnEdit = e.target.closest('.edit-lanc');
   const btnDel = e.target.closest('.del-lanc');
@@ -823,6 +849,9 @@ $('deleteLancBtn').addEventListener('click', () => { if(editingLancId) deleteLan
 $('bClear').addEventListener('click', () => {
   if (confirm('Limpar todos os lançamentos do mês atual? Esta ação não pode ser desfeita.')) {
     localStorage.removeItem(K());
+    // Reseta o registro de último mês para que o alerta apareça novamente se necessário
+    const now = new Date();
+    store.setLastMonth(now.getFullYear(), now.getMonth()+1);
     rDash(); rHist();
     toast('🗑 Mês limpo');
   }
@@ -836,6 +865,7 @@ $('bClear').addEventListener('click', () => {
   $('lCat').innerHTML = CATS.rec.map(c => `<option>${c}</option>`).join('');
   bindMoneyInputs();
   rDash();
+  checkNewMonth(); // Verifica se é um novo mês e exibe alerta
 })();
 </script>
 </body>
