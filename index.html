@@ -7,6 +7,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f1923">
 <title>Finança</title>
+
+<!-- Ícone padrão para Tela de Início -->
+<link rel="apple-touch-icon" href="https://emojicdn.elk.sh/💰?style=apple">
+
 <style>
 :root{--bg:#0f1923;--s1:#1a2535;--s2:#223045;--bd:#2d3f55;--ac:#00d4aa;--bl:#0099ff;--wr:#f5a623;--dg:#ff4d6d;--tx:#e8edf3;--mt:#7a90a8;--gr:#00c896;--pu:#a78bfa;--r:14px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -84,10 +88,14 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
 .pw b{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--mt);font-weight:700;pointer-events:none}
 .pw input{padding-left:38px;font-size:22px;font-weight:800}
 .res{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:9px}
-.res .hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.res .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.res .info{flex:1;min-width:0}
 .res .n{font-size:14px;font-weight:800}
-.res .m{font-size:11px;color:var(--mt);margin-top:2px}
-.res .s{font-size:20px;font-weight:800;color:var(--ac)}
+.res .meta-input{display:flex;align-items:center;gap:5px;background:var(--s2);padding:4px 8px;border-radius:20px;border:1px solid var(--bd)}
+.res .meta-input label{font-size:10px;color:var(--mt)}
+.res .meta-input input{width:90px;background:transparent;border:none;color:var(--tx);font-size:12px;font-weight:800;text-align:right;padding:4px 0;outline:none}
+.res .m{font-size:11px;color:var(--mt);margin-top:4px}
+.res .s{font-size:18px;font-weight:800;color:var(--ac)}
 .res .acts{display:flex;gap:7px;margin-top:11px}
 .res .acts button{flex:1;padding:9px;border-radius:9px;font-size:12px;font-weight:800;border:none;cursor:pointer;font-family:inherit}
 .res .acts button:active{opacity:.8}
@@ -174,7 +182,7 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
 <div class="pg" id="pg-d10">
   <div class="card">
     <div style="font-size:15px;font-weight:800;margin-bottom:3px">📅 Fechamento do mês</div>
-    <div style="font-size:13px;color:var(--mt)">Preencha tudo e salve de uma vez.</div>
+    <div style="font-size:13px;color:var(--mt)">Preencha os valores que mudaram este mês. Campos vazios serão ignorados.</div>
   </div>
   <div class="sect">💵 Receita e meta</div>
   <div class="card">
@@ -183,7 +191,7 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
       <input type="text" id="fSal" placeholder="0,00" inputmode="decimal">
     </div>
     <div class="row">
-      <div class="l"><div class="n">💰 Meta de economia</div><div class="c">Quanto quer guardar este mês</div></div>
+      <div class="l"><div class="n">💰 Meta de economia mensal</div><div class="c">Quanto quer guardar este mês</div></div>
       <input type="text" id="fMeta" placeholder="0,00" inputmode="decimal">
     </div>
   </div>
@@ -207,7 +215,7 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
     <div class="r"><span>Total em reservas</span><b id="rTot">R$ 0</b></div>
     <div class="r tt"><span>Total BTG</span><b id="rGer">R$ 0</b></div>
   </div>
-  <div class="lbl" style="margin-bottom:9px">Reservas</div>
+  <div class="lbl" style="margin-bottom:9px">🎯 Reservas (clique no valor da meta para editar)</div>
   <div id="rBox"></div>
 </div>
 
@@ -216,7 +224,7 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
   <div class="tabs" id="lTabs">
     <button class="tab on" data-t="rec"><span>💵</span>RECEITA</button>
     <button class="tab" data-t="ext"><span>💸</span>EXTRA</button>
-    <button class="tab" data-t="cts"><span>🏦</span>CONTAS</button>
+    <button class="tab" data-t="cts"><span>💰</span>CONTAS</button>
   </div>
   <div id="lForm">
     <div class="fld"><label>Valor (R$)</label>
@@ -301,21 +309,26 @@ const FIXAS = [
   ['Rede Celular','Celular',44],
   ['Plano de TV','Assinaturas',30]
 ];
+
+// Reservas com valores padrão ZERO - você define sua meta
 const RES_DEF = [
-  {id:'edu',nome:'Educação Pessoal',meta:50,saldo:0},
-  {id:'pre',nome:'Presente pra mim',meta:200,saldo:0},
-  {id:'fac',nome:'Faculdade Ícaro',meta:100,saldo:0},
-  {id:'fer',nome:'Férias fim do ano',meta:150,saldo:0},
-  {id:'cir',nome:'Cirurgia Ocular',meta:100,saldo:0},
-  {id:'mor',nome:'Aniversário Morgana',meta:80,saldo:0},
-  {id:'ica',nome:'Aniversário Ícaro',meta:20,saldo:0}
+  {id:'edu',nome:'📚 Educação Pessoal',meta:0,saldo:0},
+  {id:'pre',nome:'🎁 Presente pra mim',meta:0,saldo:0},
+  {id:'fac',nome:'🎓 Faculdade Ícaro',meta:0,saldo:0},
+  {id:'fer',nome:'🏖️ Férias fim do ano',meta:0,saldo:0},
+  {id:'cir',nome:'👁️ Cirurgia Ocular',meta:0,saldo:0},
+  {id:'mor',nome:'🎂 Aniversário Morgana',meta:0,saldo:0},
+  {id:'ica',nome:'🎂 Aniversário Ícaro',meta:0,saldo:0},
+  {id:'emergencia',nome:'🚨 Reserva de Emergência',meta:0,saldo:0},
+  {id:'ps5',nome:'🎮 PlayStation 5 Pro',meta:0,saldo:0}
 ];
+
 const CATS = {
   rec:['Salário','Renda Extra','Dividendos','Reembolso','13° Salário','PLR/Bônus','Outros'],
   ext:['Alimentação','Transporte','Saúde','Lazer','Vestuário','Presentes','Manutenção','Outros']
 };
-const ICON = {Receita:'💵','Conta Fixa':'🏠','Despesa Extra':'💸',Cartão:'💳',Investimento:'📈'};
-const ICOL = {Receita:'rgba(0,200,150,.15)','Conta Fixa':'rgba(0,153,255,.15)','Despesa Extra':'rgba(245,166,35,.15)',Cartão:'rgba(167,139,250,.15)',Investimento:'rgba(0,200,150,.15)'};
+const ICON = {Receita:'💵','Conta Fixa':'🏠','Despesa Extra':'💸',Cartão:'💳',Investimento:'📈',EdicaoSaldo:'✏️'};
+const ICOL = {Receita:'rgba(0,200,150,.15)','Conta Fixa':'rgba(0,153,255,.15)','Despesa Extra':'rgba(245,166,35,.15)',Cartão:'rgba(167,139,250,.15)',Investimento:'rgba(0,200,150,.15)',EdicaoSaldo:'rgba(0,153,255,.1)'};
 
 /* ── STORAGE ────────────────────────────────── */
 const K = () => { const n = new Date(); return `fin_${n.getFullYear()}_${n.getMonth()+1}`; };
@@ -333,7 +346,7 @@ const store = {
   setRes: r => localStorage.setItem('fin_r', JSON.stringify(r)),
   getMeta: () => {
     let m = localStorage.getItem('fin_meta');
-    return m !== null ? parseFloat(m) : 700;
+    return m !== null ? parseFloat(m) : 0;
   },
   setMeta: v => localStorage.setItem('fin_meta', v.toString()),
   getLastMonth: () => localStorage.getItem('fin_last_month'),
@@ -374,499 +387,4 @@ function toast(m, duration = 2500){
   const t = $('toast');
   t.textContent = m;
   t.classList.add('on');
-  clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.remove('on'), duration);
-}
-
-/* ── ALERTA DE NOVO MÊS ─────────────────────── */
-function checkNewMonth() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1; // 1-12
-  const currentMonthKey = `${year}-${month}`;
-  const lastMonth = store.getLastMonth();
-  
-  if (lastMonth !== currentMonthKey) {
-    // Novo mês detectado
-    store.setLastMonth(year, month);
-    // Verificar se já existem lançamentos para este mês (para não avisar se a pessoa já configurou)
-    const lancamentos = store.lanc();
-    if (lancamentos.length === 0) {
-      toast('📅 Novo mês! Vá em "Dia 10" para configurar sua receita e contas.', 5000);
-    } else {
-      toast('📅 Boas vindas ao novo mês! Revise seus dados no "Dia 10" se necessário.', 4000);
-    }
-  }
-}
-
-/* ── CALC ───────────────────────────────────── */
-function calc(){
-  const it = store.lanc();
-  const s = {};
-  for (const i of it) s[i.tipo] = (s[i.tipo] || 0) + i.valor;
-  const rec  = s['Receita'] || 0;
-  const fix  = s['Conta Fixa'] || 0;
-  const ext  = s['Despesa Extra'] || 0;
-  const card = s['Cartão'] || 0;
-  const meta = store.getMeta();
-  return { rec, fix, ext, card, disp: rec > 0 ? rec - fix - card - ext - meta : 0, meta };
-}
-const liq = () => CONTAS.reduce((t,c) => t + (+store.saldos()[c] || 0), 0);
-
-/* ── DASHBOARD ──────────────────────────────── */
-function rDash(){
-  const {rec, fix, ext, card, disp, meta} = calc();
-  const pct = rec > 0 ? Math.min(((fix+card+ext+meta)/rec)*100, 100) : 0;
-
-  const v = $('dVal');
-  v.textContent = fmt(disp);
-  v.className = 'v ' + (disp < 0 ? 'dg' : disp < rec*0.1 && rec>0 ? 'wr' : 'ok');
-  
-  const subEl = $('dSub');
-  if (rec === 0) {
-    subEl.innerHTML = '📅 Informe a receita no Dia 10 →';
-    subEl.style.cursor = 'pointer';
-    subEl.onclick = () => go('d10');
-  } else {
-    subEl.innerHTML = `Receita − Fixas − Cartões − Extras − Meta ${fmt(meta)}`;
-    subEl.style.cursor = 'default';
-    subEl.onclick = null;
-  }
-
-  const sem = $('dSem');
-  if (rec === 0)        { sem.className='sem ok'; sem.innerHTML='<span>🟢</span><span>Aguardando dados</span>'; }
-  else if (disp < 0)    { sem.className='sem dg'; sem.innerHTML='<span>🔴</span><span>Gastos superam a receita</span>'; }
-  else if (disp < rec*.1){ sem.className='sem wr'; sem.innerHTML='<span>🟡</span><span>Margem apertada — menos de 10% livre</span>'; }
-  else                  { sem.className='sem ok'; sem.innerHTML=`<span>🟢</span><span>${fmt(disp)} livres</span>`; }
-
-  $('dRec').textContent  = fmt(rec);
-  $('dFix').textContent  = fmt(fix);
-  $('dCard').textContent = fmt(card);
-  $('dExt').textContent  = fmt(ext);
-  $('dPct').textContent  = pct.toFixed(0) + '%';
-
-  const f = $('dFill');
-  f.style.width = pct + '%';
-  f.className = 'fill ' + (pct > 90 ? 'dg' : pct > 80 ? 'wr' : 'ok');
-  $('dLiq').textContent = fmt(liq());
-
-  const als = [];
-  if (rec === 0) als.push(['wr','Registre a receita no Dia 10 para ver o saldo livre.']);
-  else {
-    if (disp < 0)           als.push(['dg', `Gastos superam a receita em ${fmt(-disp)}.`]);
-    else if (disp < rec*.1) als.push(['wr', 'Menos de 10% da receita livre — margem apertada.']);
-    else                    als.push(['ok', `${fmt(disp)} livres após todos os compromissos.`]);
-    if (card > rec*.4)      als.push(['wr', `Cartões comprometeram ${(card/rec*100).toFixed(0)}% da receita.`]);
-    if (ext  > rec*.15)     als.push(['wr', `Extras comprometeram ${(ext/rec*100).toFixed(0)}% da receita.`]);
-  }
-  $('dAls').innerHTML = als.map(([t,m]) =>
-    `<div class="al ${t}"><span>${t==='ok'?'✅':t==='wr'?'⚠️':'🔴'}</span><span>${m}</span></div>`).join('');
-}
-
-/* ── DIA 10 ─────────────────────────────────── */
-function getExistingValue(tipo, desc) {
-  const lancamentos = store.lanc();
-  const item = lancamentos.find(l => l.tipo === tipo && l.desc === desc);
-  return item ? item.valor : 0;
-}
-
-function rD10(){
-  const s = store.saldos();
-  $('fContas').innerHTML = CONTAS.map(c => `
-    <div class="row">
-      <div class="l"><div class="n">${c}</div><div class="c">Conta corrente</div></div>
-      <input type="text" id="fc_${cid(c)}" value="${(s[c] || 0).toLocaleString('pt-BR', {minimumFractionDigits:2})}" inputmode="decimal">
-    </div>`).join('');
-
-  $('fFixas').innerHTML = FIXAS.map((f,i) => {
-    const val = getExistingValue('Conta Fixa', f[0]);
-    return `<div class="row">
-      <div class="l"><div class="n">${f[0]}</div><div class="c">${f[1]} (média: ${fmt(f[2])})</div></div>
-      <input type="text" id="ff_${i}" value="${val ? val.toLocaleString('pt-BR', {minimumFractionDigits:2}) : ''}" inputmode="decimal">
-    </div>`;
-  }).join('');
-
-  $('fCards').innerHTML = CARTOES.map(c => {
-    const val = getExistingValue('Cartão', `Cartão ${c}`);
-    return `<div class="row">
-      <div class="l"><div class="n">Cartão ${c}</div><div class="c">Fatura do mês</div></div>
-      <input type="text" id="fk_${c}" value="${val ? val.toLocaleString('pt-BR', {minimumFractionDigits:2}) : ''}" inputmode="decimal">
-    </div>`;
-  }).join('');
-
-  const metaAtual = store.getMeta();
-  $('fMeta').value = metaAtual.toLocaleString('pt-BR', {minimumFractionDigits:2});
-
-  updLiq('fContas','fc_','fLiq');
-  bindMoneyInputs();
-}
-
-function updLiq(boxId, prefix, outId){
-  let t = 0;
-  for (const c of CONTAS) {
-    const el = $(prefix + cid(c));
-    if (el) t += parseMoney(el.value);
-  }
-  $(outId).textContent = fmt(t);
-}
-
-let confirmLock = false;
-function confirmD10(){
-  if (confirmLock) { toast('Aguarde, salvando...'); return; }
-  confirmLock = true;
-  $('bConfirm').disabled = true;
-  $('bConfirm').style.opacity = '0.6';
-
-  const d = today();
-  const items = [];
-  const s = store.saldos();
-
-  const sal = parseMoney($('fSal').value);
-  if (sal > 0) items.push({id:Date.now(), tipo:'Receita', cat:'Salário', desc:'Salário', valor:sal, data:d});
-
-  const novaMeta = parseMoney($('fMeta').value);
-  if (novaMeta >= 0) store.setMeta(novaMeta);
-
-  let saldoTouched = false;
-  for (const c of CONTAS) {
-    const el = $('fc_' + cid(c));
-    if (el && el.value !== '') { s[c] = parseMoney(el.value); saldoTouched = true; }
-  }
-  store.setSaldos(s);
-
-  FIXAS.forEach((f,i) => {
-    const v = parseMoney($('ff_'+i)?.value);
-    if (v > 0) items.push({id:Date.now()+10+i, tipo:'Conta Fixa', cat:f[1], desc:f[0], valor:v, data:d});
-  });
-
-  CARTOES.forEach((c,i) => {
-    const v = parseMoney($('fk_'+c)?.value);
-    if (v > 0) items.push({id:Date.now()+30+i, tipo:'Cartão', cat:c, desc:`Cartão ${c}`, valor:v, data:d});
-  });
-
-  if (!items.length && !saldoTouched) { toast('Preencha pelo menos um valor'); confirmLock=false; $('bConfirm').disabled=false; $('bConfirm').style.opacity='1'; return; }
-
-  let arr = store.lanc();
-  arr = arr.filter(e => !items.some(n => e.tipo === n.tipo && e.desc === n.desc && e.data === n.data));
-  arr.push(...items);
-  store.setLanc(arr);
-
-  // Atualiza o mês atual no registro de último mês (para não mostrar alerta novamente)
-  const now = new Date();
-  store.setLastMonth(now.getFullYear(), now.getMonth()+1);
-
-  rDash(); rHist();
-  toast(`✅ ${items.length} lançamento(s) salvo(s)! Meta: ${fmt(novaMeta)}`);
-  setTimeout(() => {
-    confirmLock = false;
-    $('bConfirm').disabled = false;
-    $('bConfirm').style.opacity = '1';
-  }, 2000);
-  go('dash');
-}
-
-/* ── RESERVAS ───────────────────────────────── */
-let movId = null, movTipo = null, edtId = null;
-
-function rResv(){
-  const res = store.res();
-  const tot = res.reduce((s,r) => s + r.saldo, 0);
-  const cc  = +store.saldos()['BTG'] || 0;
-  $('rCC').textContent  = fmt(cc);
-  $('rTot').textContent = fmt(tot);
-  $('rGer').textContent = fmt(cc + tot);
-
-  $('rBox').innerHTML = res.map(r => {
-    const pct = r.meta > 0 ? Math.min(r.saldo/r.meta*100, 100) : 0;
-    return `<div class="res">
-      <div class="hd">
-        <div><div class="n">${r.nome}</div><div class="m">Depósito sugerido: ${fmt(r.meta)}/mês</div></div>
-        <div class="s">${fmt(r.saldo)}</div>
-      </div>
-      <div class="bar" style="margin-bottom:10px"><div class="fill ${pct>=100?'ok':pct>50?'wr':'dg'}" style="width:${pct}%"></div></div>
-      <div class="acts">
-        <button class="b-dep" data-mov="dep" data-id="${r.id}">+ Depositar</button>
-        <button class="b-ret" data-mov="ret" data-id="${r.id}">− Retirar</button>
-        <button class="b-edt" data-edt="${r.id}">✏️ Editar</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function openMov(id, tipo){
-  const r = store.res().find(x => x.id === id);
-  if (!r) return;
-  movId = id; movTipo = tipo;
-  $('mMovT').textContent = (tipo === 'dep' ? 'Depositar — ' : 'Retirar de — ') + r.nome;
-  $('mMovS').textContent = 'Saldo atual: ' + fmt(r.saldo);
-  $('mMovB').textContent = tipo === 'dep' ? 'Confirmar depósito' : 'Confirmar retirada';
-  $('mMovB').className = 'btn ' + (tipo === 'dep' ? 'a' : 'd');
-  $('mMovV').value = '';
-  $('mMov').classList.add('on');
-}
-
-function confirmMov(){
-  const v = parseMoney($('mMovV').value);
-  if (v <= 0) { toast('Informe um valor válido'); return; }
-  const res = store.res();
-  const r = res.find(x => x.id === movId);
-  if (!r) return;
-
-  if (movTipo === 'dep') {
-    r.saldo += v;
-  } else {
-    if (v > r.saldo) { toast('Valor maior que o saldo'); return; }
-    r.saldo -= v;
-  }
-  store.setRes(res);
-
-  const arr = store.lanc();
-  arr.unshift({
-    id: Date.now(), tipo: 'Investimento',
-    cat: movTipo === 'dep' ? 'Reserva BTG' : 'Retirada Reserva',
-    desc: (movTipo === 'dep' ? 'Depósito — ' : 'Retirada — ') + r.nome,
-    valor: movTipo === 'dep' ? v : -v, data: today()
-  });
-  store.setLanc(arr);
-
-  $('mMov').classList.remove('on');
-  rResv(); rDash(); rHist();
-  toast(`✅ ${fmt(v)} ${movTipo === 'dep' ? 'depositados' : 'retirados'}!`);
-}
-
-function openEdt(id){
-  const r = store.res().find(x => x.id === id);
-  if (!r) return;
-  edtId = id;
-  $('mEdtS').textContent = `${r.nome} · Sugestão: ${fmt(r.meta)}/mês`;
-  $('mEdtV').value = r.saldo.toLocaleString('pt-BR', {minimumFractionDigits:2});
-  $('mEdt').classList.add('on');
-}
-
-function confirmEdt(){
-  const res = store.res();
-  const r = res.find(x => x.id === edtId);
-  if (!r) return;
-  r.saldo = parseMoney($('mEdtV').value);
-  store.setRes(res);
-  $('mEdt').classList.remove('on');
-  rResv();
-  toast('✅ Saldo atualizado!');
-}
-
-/* ── LANÇAR ─────────────────────────────────── */
-let lTipo = 'rec';
-
-function rLancTabs(){
-  const isCts = lTipo === 'cts';
-  $('lForm').style.display   = isCts ? 'none'  : 'block';
-  $('lContas').style.display = isCts ? 'block' : 'none';
-  if (isCts) rLancContas();
-  else {
-    $('lCat').innerHTML = CATS[lTipo].map(c => `<option>${c}</option>`).join('');
-  }
-}
-
-function rLancContas(){
-  const s = store.saldos();
-  $('lContasBox').innerHTML = CONTAS.map(c => `
-    <div class="row">
-      <div class="l"><div class="n">${c}</div></div>
-      <input type="text" id="lc_${cid(c)}" value="${(s[c] || 0).toLocaleString('pt-BR', {minimumFractionDigits:2})}" inputmode="decimal">
-    </div>`).join('');
-  updLiq('lContasBox','lc_','lLiq');
-  bindMoneyInputs();
-}
-
-function saveLanc(){
-  const v = parseMoney($('lVal').value);
-  if (!v || v <= 0) { toast('Informe um valor válido'); return; }
-  const tipo = lTipo === 'rec' ? 'Receita' : 'Despesa Extra';
-  const cat  = $('lCat').value;
-  const arr  = store.lanc();
-  arr.unshift({
-    id: Date.now(), tipo, cat,
-    desc: $('lDesc').value.trim() || cat,
-    valor: v, data: $('lData').value || today()
-  });
-  store.setLanc(arr);
-  $('lVal').value = ''; $('lDesc').value = '';
-  toast('✅ Lançamento salvo!');
-  rDash(); rHist();
-}
-
-function saveSaldos(){
-  const s = store.saldos();
-  for (const c of CONTAS) {
-    const el = $('lc_' + cid(c));
-    if (el && el.value !== '') s[c] = parseMoney(el.value);
-  }
-  store.setSaldos(s);
-  rDash();
-  toast('✅ Saldos atualizados!');
-}
-
-/* ── HISTÓRICO ──────────────────────────────── */
-function rHist(){
-  const it = store.lanc();
-  const sorted = [...it].sort((a,b) => b.id - a.id);
-  $('hBox').innerHTML = !sorted.length
-    ? '<div class="empty"><span>📋</span>Nenhum lançamento este mês</div>'
-    : sorted.map(i => {
-        const isPositive = i.tipo === 'Receita' || (i.tipo === 'Investimento' && i.valor > 0);
-        const isNegative = i.tipo === 'Despesa Extra' || i.tipo === 'Cartão' || i.tipo === 'Conta Fixa' || (i.tipo === 'Investimento' && i.valor < 0);
-        let signClass = 'neutral';
-        let signChar = '';
-        if (isPositive) { signClass = 'plus'; signChar = '+'; }
-        else if (isNegative) { signClass = 'minus'; signChar = '−'; }
-        else signChar = '';
-        const displayVal = Math.abs(i.valor);
-        return `<div class="hist" data-id="${i.id}">
-          <div class="d" style="background:${ICOL[i.tipo] || 'var(--s2)'}">${ICON[i.tipo] || '•'}</div>
-          <div class="i"><div class="t">${i.desc}</div><div class="m">${i.tipo} · ${fmtD(i.data)}</div></div>
-          <div class="v ${signClass}">${signChar} ${fmt(displayVal)}</div>
-          <div class="actions">
-            <button class="edit-lanc" title="Editar">✏️</button>
-            <button class="del-lanc" title="Excluir">🗑</button>
-          </div>
-        </div>`;
-      }).join('');
-}
-
-let editingLancId = null;
-function openEditLanc(id){
-  const lanc = store.lanc().find(l => l.id == id);
-  if (!lanc) return;
-  editingLancId = id;
-  $('editVal').value = Math.abs(lanc.valor).toLocaleString('pt-BR', {minimumFractionDigits:2});
-  $('editDesc').value = lanc.desc;
-  $('editData').value = lanc.data;
-  $('mEditLanc').classList.add('on');
-}
-
-function deleteLanc(id){
-  if (!confirm('Excluir este lançamento permanentemente?')) return;
-  let arr = store.lanc();
-  arr = arr.filter(l => l.id != id);
-  store.setLanc(arr);
-  $('mEditLanc').classList.remove('on');
-  rDash(); rHist();
-  toast('🗑 Lançamento removido');
-}
-
-function updateLanc(){
-  const newVal = parseMoney($('editVal').value);
-  if (newVal <= 0) { toast('Valor deve ser maior que zero'); return; }
-  const arr = store.lanc();
-  const index = arr.findIndex(l => l.id == editingLancId);
-  if (index === -1) return;
-  const oldLanc = arr[index];
-  let newValSigned = newVal;
-  if (oldLanc.tipo === 'Despesa Extra' || oldLanc.tipo === 'Cartão' || oldLanc.tipo === 'Conta Fixa') newValSigned = -newVal;
-  else if (oldLanc.tipo === 'Investimento') {
-    if (oldLanc.valor < 0) newValSigned = -newVal;
-  }
-  arr[index] = {
-    ...oldLanc,
-    valor: newValSigned,
-    desc: $('editDesc').value.trim() || oldLanc.desc,
-    data: $('editData').value
-  };
-  store.setLanc(arr);
-  $('mEditLanc').classList.remove('on');
-  rDash(); rHist();
-  toast('✏️ Lançamento atualizado');
-}
-
-/* ── NAVEGAÇÃO ──────────────────────────────── */
-function go(p){
-  document.querySelectorAll('.pg').forEach(x => x.classList.remove('on'));
-  document.querySelectorAll('#nav button').forEach(x => x.classList.remove('on'));
-  $('pg-' + p).classList.add('on');
-  document.querySelector(`#nav [data-p="${p}"]`).classList.add('on');
-  if (p === 'dash') rDash();
-  else if (p === 'd10')  { rD10(); bindMoneyInputs(); }
-  else if (p === 'resv') rResv();
-  else if (p === 'hist') rHist();
-  else if (p === 'lanc') rLancTabs();
-}
-
-/* ── EVENTOS ────────────────────────────────── */
-$('nav').addEventListener('click', e => {
-  const b = e.target.closest('button[data-p]');
-  if (b) go(b.dataset.p);
-});
-
-$('lTabs').addEventListener('click', e => {
-  const b = e.target.closest('.tab');
-  if (!b) return;
-  document.querySelectorAll('#lTabs .tab').forEach(x => x.classList.remove('on'));
-  b.classList.add('on');
-  lTipo = b.dataset.t;
-  rLancTabs();
-});
-
-$('hBox').addEventListener('click', e => {
-  const btnEdit = e.target.closest('.edit-lanc');
-  const btnDel = e.target.closest('.del-lanc');
-  if (btnEdit) {
-    const histDiv = btnEdit.closest('.hist');
-    const id = histDiv.dataset.id;
-    openEditLanc(id);
-  } else if (btnDel) {
-    const histDiv = btnDel.closest('.hist');
-    const id = histDiv.dataset.id;
-    deleteLanc(id);
-  }
-});
-
-$('rBox').addEventListener('click', e => {
-  const mov = e.target.closest('[data-mov]');
-  if (mov) { openMov(mov.dataset.id, mov.dataset.mov); return; }
-  const edt = e.target.closest('[data-edt]');
-  if (edt) openEdt(edt.dataset.edt);
-});
-
-document.addEventListener('click', e => {
-  const c = e.target.closest('[data-close]');
-  if (c) $(c.dataset.close).classList.remove('on');
-});
-document.querySelectorAll('.mb').forEach(m =>
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('on'); }));
-
-$('pg-d10').addEventListener('input', e => {
-  if (e.target.id && e.target.id.startsWith('fc_')) updLiq('fContas','fc_','fLiq');
-});
-$('lContasBox').addEventListener('input', () => updLiq('lContasBox','lc_','lLiq'));
-
-$('bConfirm').addEventListener('click', confirmD10);
-$('bLanc').addEventListener('click', saveLanc);
-$('bSaldos').addEventListener('click', saveSaldos);
-$('mMovB').addEventListener('click', confirmMov);
-$('mEdtB').addEventListener('click', confirmEdt);
-$('confirmEditLanc').addEventListener('click', updateLanc);
-$('deleteLancBtn').addEventListener('click', () => { if(editingLancId) deleteLanc(editingLancId); });
-$('bClear').addEventListener('click', () => {
-  if (confirm('Limpar todos os lançamentos do mês atual? Esta ação não pode ser desfeita.')) {
-    localStorage.removeItem(K());
-    // Reseta o registro de último mês para que o alerta apareça novamente se necessário
-    const now = new Date();
-    store.setLastMonth(now.getFullYear(), now.getMonth()+1);
-    rDash(); rHist();
-    toast('🗑 Mês limpo');
-  }
-});
-
-/* ── INIT ───────────────────────────────────── */
-(function(){
-  const n = new Date();
-  $('hMonth').textContent = n.toLocaleDateString('pt-BR', {month:'long', year:'numeric'});
-  $('lData').value = today();
-  $('lCat').innerHTML = CATS.rec.map(c => `<option>${c}</option>`).join('');
-  bindMoneyInputs();
-  rDash();
-  checkNewMonth(); // Verifica se é um novo mês e exibe alerta
-})();
-</script>
-</body>
-</html>
+  clearTimeout(toast
