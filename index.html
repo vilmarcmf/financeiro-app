@@ -368,7 +368,7 @@ function getTotalFixasEssenciais() {
 
 function atualizaMetaEmergencia() {
   let totalMensal = getTotalFixasEssenciais();
-  let metaAlvo = totalMensal * 12;  // x12 conforme solicitado
+  let metaAlvo = totalMensal * 12;  // conforme solicitado: 12x os essenciais
   let res = store.res();
   let emerg = res.find(r => r.id === 'emergencia');
   if (emerg && emerg.meta !== metaAlvo) {
@@ -379,7 +379,7 @@ function atualizaMetaEmergencia() {
 
 function afterFixasChange() {
   atualizaMetaEmergencia();
-  rResv();
+  if ($('pg-resv').classList.contains('on')) rResv();
   rDash();
 }
 
@@ -400,17 +400,21 @@ function totalReservas() {
   return store.res().reduce((acc, r) => acc + r.saldo, 0);
 }
 
-// Função para calcular depósitos do mês em cada reserva (para alocação)
+// Nova função para obter depósitos do mês em reservas (para alocação)
 function getDepositosReservasMes() {
-  const lancamentos = store.lanc();
-  let depositos = { edu: 0, outros: 0 }; // edu = Educação Pessoal, outros = demais (exceto emergência? Vou considerar todos exceto educação e emergência para "investimento geral")
+  let lancamentos = store.lanc();
+  let depositosEdu = 0;
+  let depositosOutros = 0;
   for (let l of lancamentos) {
     if (l.tipo === 'Investimento' && l.valor > 0) {
-      if (l.desc.includes('Educação Pessoal')) depositos.edu += l.valor;
-      else if (!l.desc.includes('Emergência')) depositos.outros += l.valor;
+      if (l.desc && l.desc.includes('Educação Pessoal')) {
+        depositosEdu += l.valor;
+      } else {
+        depositosOutros += l.valor;
+      }
     }
   }
-  return depositos;
+  return { edu: depositosEdu, outros: depositosOutros };
 }
 
 function rDash() {
@@ -449,34 +453,55 @@ function rDash() {
   let totalResEl = $('#totalReservasDash');
   if (totalResEl) totalResEl.textContent = fmt(totalRes);
 
-  // Alocação recomendada vs realizada
-  if (rec > 0) {
+  // --- Alocação recomendada vs realizada (corrigido e sempre visível) ---
+  let allocContainer = $('#allocContent');
+  if (!allocContainer) return;
+
+  if (rec === 0) {
+    allocContainer.innerHTML = '<div style="text-align:center; color:var(--mt);">Informe a receita para ver a alocação.</div>';
+  } else {
     let despesasTotais = fix + card + ext;
     let pctContas = Math.min((despesasTotais / rec) * 100, 100);
-    let depositos = getDepositosReservasMes();
-    let pctEduc = Math.min((depositos.edu / rec) * 100, 100);
-    let pctInvest = Math.min((depositos.outros / rec) * 100, 100);
+    let { edu, outros } = getDepositosReservasMes();
+    let pctEduc = Math.min((edu / rec) * 100, 100);
+    let pctInvest = Math.min((outros / rec) * 100, 100);
     let pctTorrar = Math.max(0, 100 - pctContas - pctEduc - pctInvest);
-    // Recomendado: 55, 5, 30, 10
     let recContas = 55, recEduc = 5, recInvest = 30, recTorrar = 10;
+
     let html = `
       <div style="margin-bottom:8px; font-size:12px;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Contas e viver presente:</span><span>${pctContas.toFixed(1)}% / ${recContas}%</span></div>
-        <div class="bar"><div class="fill ok" style="width:${Math.min(pctContas,100)}%; background:${pctContas>recContas? 'var(--wr)':'var(--ac)'}"></div></div>
-        <div style="display:flex; justify-content:space-between; margin:8px 0 4px;"><span>Educação pessoal:</span><span>${pctEduc.toFixed(1)}% / ${recEduc}%</span></div>
-        <div class="bar"><div class="fill" style="width:${Math.min(pctEduc,100)}%; background:${pctEduc>recEduc? 'var(--wr)':'var(--ac)'}"></div></div>
-        <div style="display:flex; justify-content:space-between; margin:8px 0 4px;"><span>Investimento geral:</span><span>${pctInvest.toFixed(1)}% / ${recInvest}%</span></div>
-        <div class="bar"><div class="fill" style="width:${Math.min(pctInvest,100)}%; background:${pctInvest>recInvest? 'var(--wr)':'var(--ac)'}"></div></div>
-        <div style="display:flex; justify-content:space-between; margin:8px 0 4px;"><span>Torrar:</span><span>${pctTorrar.toFixed(1)}% / ${recTorrar}%</span></div>
-        <div class="bar"><div class="fill" style="width:${Math.min(pctTorrar,100)}%; background:${pctTorrar>recTorrar? 'var(--wr)':'var(--ac)'}"></div></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span>📋 Contas e viver presente:</span>
+          <span>${pctContas.toFixed(1)}% / ${recContas}%</span>
+        </div>
+        <div class="bar"><div class="fill" style="width:${Math.min(pctContas,100)}%; background:${pctContas > recContas ? 'var(--wr)' : 'var(--ac)'}"></div></div>
+        
+        <div style="display:flex; justify-content:space-between; margin:8px 0 4px;">
+          <span>📚 Educação pessoal:</span>
+          <span>${pctEduc.toFixed(1)}% / ${recEduc}%</span>
+        </div>
+        <div class="bar"><div class="fill" style="width:${Math.min(pctEduc,100)}%; background:${pctEduc > recEduc ? 'var(--wr)' : 'var(--ac)'}"></div></div>
+        
+        <div style="display:flex; justify-content:space-between; margin:8px 0 4px;">
+          <span>📈 Investimento geral:</span>
+          <span>${pctInvest.toFixed(1)}% / ${recInvest}%</span>
+        </div>
+        <div class="bar"><div class="fill" style="width:${Math.min(pctInvest,100)}%; background:${pctInvest > recInvest ? 'var(--wr)' : 'var(--ac)'}"></div></div>
+        
+        <div style="display:flex; justify-content:space-between; margin:8px 0 4px;">
+          <span>🎉 Torrar (lazer livre):</span>
+          <span>${pctTorrar.toFixed(1)}% / ${recTorrar}%</span>
+        </div>
+        <div class="bar"><div class="fill" style="width:${Math.min(pctTorrar,100)}%; background:${pctTorrar > recTorrar ? 'var(--wr)' : 'var(--ac)'}"></div></div>
       </div>
-      <div style="font-size:11px; color:var(--mt); margin-top:6px;">* Torrar = saldo livre após despesas e investimentos.</div>
+      <div style="font-size:11px; color:var(--mt); margin-top:6px;">
+        * Torrar = saldo livre após despesas e investimentos.
+      </div>
     `;
-    $('#allocContent').innerHTML = html;
-  } else {
-    $('#allocContent').innerHTML = '<div style="text-align:center; color:var(--mt);">Informe a receita para ver a alocação.</div>';
+    allocContainer.innerHTML = html;
   }
 
+  // Alertas
   let als = [];
   if (rec === 0) als.push(['wr','Registre a receita no Dia 10.']);
   else {
@@ -547,7 +572,6 @@ function updateReservaField(id, field, value) {
 }
 function rResv() {
   let res = store.res();
-  let totSaldo = res.reduce((s,r) => s + r.saldo, 0);
   $('rBox').innerHTML = res.map(r => {
     let pct = r.meta > 0 ? Math.min(r.saldo/r.meta*100, 100) : 0;
     let showSugestao = (r.id !== 'acoes' && r.id !== 'aposentadoria' && r.id !== 'emergencia') || r.id === 'bitcoin';
@@ -653,12 +677,13 @@ function saveLanc() {
   let tipo = lTipo === 'rec' ? 'Receita' : 'Despesa Extra';
   let cat = $('lCat').value;
   let arr = store.lanc();
-  arr.unshift({ id: Date.now(), tipo, cat, desc: $('lDesc').value.trim() || cat, valor: v, data: $('lData').value || today() });
+  let desc = $('lDesc').value.trim() || cat;
+  arr.unshift({ id: Date.now(), tipo, cat, desc, valor: v, data: $('lData').value || today() });
   store.setLanc(arr);
   $('lVal').value = ''; $('lDesc').value = '';
   toast('✅ Lançamento salvo!');
   rDash(); rHist();
-  if (tipo === 'Conta Fixa' && FIXAS_ESSENCIAIS.includes($('lDesc').value.trim())) afterFixasChange();
+  if (tipo === 'Conta Fixa' && FIXAS_ESSENCIAIS.includes(desc)) afterFixasChange();
 }
 function saveSaldos() {
   let s = store.saldos();
@@ -733,7 +758,6 @@ function go(p) {
   else if (p === 'lanc') rLancTabs();
 }
 
-// Eventos
 $('nav').addEventListener('click', e => { let b = e.target.closest('button[data-p]'); if (b) go(b.dataset.p); });
 $('lTabs').addEventListener('click', e => { let b = e.target.closest('.tab'); if (!b) return; document.querySelectorAll('#lTabs .tab').forEach(x => x.classList.remove('on')); b.classList.add('on'); lTipo = b.dataset.t; rLancTabs(); });
 $('hBox').addEventListener('click', e => { let ed = e.target.closest('.edit-lanc'), dl = e.target.closest('.del-lanc'); if (ed) { let id = ed.closest('.hist').dataset.id; openEditLanc(id); } else if (dl) { let id = dl.closest('.hist').dataset.id; deleteLanc(id); } });
