@@ -105,7 +105,9 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
 .hist .i{flex:1;min-width:0}
 .hist .t{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hist .m{font-size:11px;color:var(--mt);margin-top:1px}
-.hist .v{font-size:14px;font-weight:800;flex-shrink:0}
+.hist .actions{display:flex;gap:10px;flex-shrink:0}
+.hist .actions button{background:none;border:none;font-size:16px;cursor:pointer;padding:5px}
+.hist .v{font-size:14px;font-weight:800;flex-shrink:0;margin-right:8px}
 .hist .v.plus{color:var(--gr)}
 .hist .v.minus{color:var(--dg)}
 .hist .v.neutral{color:var(--mt)}
@@ -173,11 +175,15 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
     <div style="font-size:15px;font-weight:800;margin-bottom:3px">📅 Fechamento do mês</div>
     <div style="font-size:13px;color:var(--mt)">Preencha tudo e salve de uma vez.</div>
   </div>
-  <div class="sect">💵 Receita</div>
+  <div class="sect">💵 Receita e meta</div>
   <div class="card">
     <div class="row">
       <div class="l"><div class="n">Salário líquido</div><div class="c">Já descontado INSS, adiantamento, empréstimo</div></div>
       <input type="text" id="fSal" placeholder="0,00" inputmode="decimal">
+    </div>
+    <div class="row">
+      <div class="l"><div class="n">💰 Meta de economia</div><div class="c">Quanto quer guardar este mês</div></div>
+      <input type="text" id="fMeta" placeholder="0,00" inputmode="decimal">
     </div>
   </div>
   <div class="sect">💰 Saldo nas contas <small>(liquidez diária)</small></div>
@@ -240,7 +246,7 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
 </main>
 </div>
 
-<!-- MODAL MOVIMENTAÇÃO -->
+<!-- MODAL MOVIMENTAÇÃO RESERVA -->
 <div class="mb" id="mMov">
   <div class="md">
     <div class="hd"><h3 id="mMovT">Depositar</h3><button data-close="mMov">✕</button></div>
@@ -252,7 +258,7 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
   </div>
 </div>
 
-<!-- MODAL EDITAR -->
+<!-- MODAL EDITAR SALDO RESERVA -->
 <div class="mb" id="mEdt">
   <div class="md">
     <div class="hd"><h3>Editar saldo</h3><button data-close="mEdt">✕</button></div>
@@ -264,6 +270,18 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
   </div>
 </div>
 
+<!-- MODAL EDITAR LANÇAMENTO -->
+<div class="mb" id="mEditLanc">
+  <div class="md">
+    <div class="hd"><h3>Editar lançamento</h3><button data-close="mEditLanc">✕</button></div>
+    <div class="fld"><label>Valor (R$)</label><div class="pw"><b>R$</b><input type="text" id="editVal" inputmode="decimal"></div></div>
+    <div class="fld"><label>Descrição</label><input type="text" id="editDesc"></div>
+    <div class="fld"><label>Data</label><input type="date" id="editData"></div>
+    <button class="btn a" id="confirmEditLanc">Salvar alterações</button>
+    <button class="btn d" id="deleteLancBtn" style="margin-top:8px">🗑 Excluir lançamento</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -272,7 +290,6 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 2
 /* ── CONFIG ─────────────────────────────────── */
 const CONTAS  = ['Caixa','BTG','Mercado Pago','Inter','Nubank'];
 const CARTOES = ['BTG','Inter','Nubank'];
-const META    = 700;
 const FIXAS = [
   ['Financiamento Apto','Financiamento',800],
   ['Viagem Suíça','Outros',1300],
@@ -312,7 +329,12 @@ const store = {
     localStorage.setItem('fin_r', JSON.stringify(RES_DEF));
     return structuredClone(RES_DEF);
   },
-  setRes: r => localStorage.setItem('fin_r', JSON.stringify(r))
+  setRes: r => localStorage.setItem('fin_r', JSON.stringify(r)),
+  getMeta: () => {
+    let m = localStorage.getItem('fin_meta');
+    return m !== null ? parseFloat(m) : 700;
+  },
+  setMeta: v => localStorage.setItem('fin_meta', v.toString())
 };
 
 /* ── HELPERS ────────────────────────────────── */
@@ -322,7 +344,6 @@ const fmtD = s => s ? s.slice(8,10) + '/' + s.slice(5,7) : '';
 const today = () => new Date().toISOString().slice(0,10);
 const cid = s => s.replace(/ /g,'_');
 
-// Converte string com vírgula decimal para número
 function parseMoney(value) {
   if (!value) return 0;
   let str = value.toString().trim();
@@ -331,7 +352,6 @@ function parseMoney(value) {
   return isNaN(num) ? 0 : num;
 }
 
-// Atualiza campos text para number formatado
 function formatMoneyInput(el) {
   if (!el) return;
   let num = parseMoney(el.value);
@@ -364,19 +384,20 @@ function calc(){
   const fix  = s['Conta Fixa'] || 0;
   const ext  = s['Despesa Extra'] || 0;
   const card = s['Cartão'] || 0;
-  return { rec, fix, ext, card, disp: rec > 0 ? rec - fix - card - ext - META : 0 };
+  const meta = store.getMeta();
+  return { rec, fix, ext, card, disp: rec > 0 ? rec - fix - card - ext - meta : 0, meta };
 }
 const liq = () => CONTAS.reduce((t,c) => t + (+store.saldos()[c] || 0), 0);
 
 /* ── DASHBOARD ──────────────────────────────── */
 function rDash(){
-  const {rec, fix, ext, card, disp} = calc();
-  const pct = rec > 0 ? Math.min(((fix+card+ext+META)/rec)*100, 100) : 0;
+  const {rec, fix, ext, card, disp, meta} = calc();
+  const pct = rec > 0 ? Math.min(((fix+card+ext+meta)/rec)*100, 100) : 0;
 
   const v = $('dVal');
   v.textContent = fmt(disp);
   v.className = 'v ' + (disp < 0 ? 'dg' : disp < rec*0.1 && rec>0 ? 'wr' : 'ok');
-  $('dSub').textContent = rec > 0 ? 'Receita − Fixas − Cartões − Extras − Meta R$ 700' : 'Informe a receita no Dia 10';
+  $('dSub').innerHTML = rec > 0 ? `Receita − Fixas − Cartões − Extras − Meta ${fmt(meta)}` : 'Informe a receita no Dia 10';
 
   const sem = $('dSem');
   if (rec === 0)        { sem.className='sem ok'; sem.innerHTML='<span>🟢</span><span>Aguardando dados</span>'; }
@@ -409,7 +430,6 @@ function rDash(){
 }
 
 /* ── DIA 10 ─────────────────────────────────── */
-// Carrega valores existentes para fixas e cartões
 function getExistingValue(tipo, desc) {
   const lancamentos = store.lanc();
   const item = lancamentos.find(l => l.tipo === tipo && l.desc === desc);
@@ -425,7 +445,7 @@ function rD10(){
       <input type="text" id="fc_${cid(c)}" value="${(s[c] || 0).toLocaleString('pt-BR', {minimumFractionDigits:2})}" inputmode="decimal">
     </div>`).join('');
 
-  // Fixas: buscar valor já lançado no mês
+  // Fixas
   $('fFixas').innerHTML = FIXAS.map((f,i) => {
     const val = getExistingValue('Conta Fixa', f[0]);
     return `<div class="row">
@@ -443,6 +463,10 @@ function rD10(){
     </div>`;
   }).join('');
 
+  // Meta atual
+  const metaAtual = store.getMeta();
+  $('fMeta').value = metaAtual.toLocaleString('pt-BR', {minimumFractionDigits:2});
+
   updLiq('fContas','fc_','fLiq');
   bindMoneyInputs();
 }
@@ -457,7 +481,7 @@ function updLiq(boxId, prefix, outId){
 }
 
 let confirmLock = false;
-async function confirmD10(){
+function confirmD10(){
   if (confirmLock) { toast('Aguarde, salvando...'); return; }
   confirmLock = true;
   $('bConfirm').disabled = true;
@@ -469,6 +493,11 @@ async function confirmD10(){
 
   const sal = parseMoney($('fSal').value);
   if (sal > 0) items.push({id:Date.now(), tipo:'Receita', cat:'Salário', desc:'Salário', valor:sal, data:d});
+
+  // Salvar meta
+  const novaMeta = parseMoney($('fMeta').value);
+  if (novaMeta > 0) store.setMeta(novaMeta);
+  else if (novaMeta === 0 && $('fMeta').value !== '') store.setMeta(0);
 
   let saldoTouched = false;
   for (const c of CONTAS) {
@@ -489,16 +518,14 @@ async function confirmD10(){
 
   if (!items.length && !saldoTouched) { toast('Preencha pelo menos um valor'); confirmLock=false; $('bConfirm').disabled=false; $('bConfirm').style.opacity='1'; return; }
 
-  const arr = store.lanc();
-  // Remove lançamentos antigos do mesmo tipo/desc/data (evita duplicatas ao editar)
-  const novos = items.filter(n => !arr.some(e => e.tipo === n.tipo && e.desc === n.desc && e.data === n.data));
-  // Se houver itens que já existem mas com valor diferente, atualiza (remove o antigo e adiciona o novo)
-  let updatedArr = arr.filter(e => !items.some(n => e.tipo === n.tipo && e.desc === n.desc && e.data === n.data));
-  updatedArr.push(...items);
-  store.setLanc(updatedArr);
+  let arr = store.lanc();
+  // Remove lançamentos antigos do mesmo tipo/desc/data
+  arr = arr.filter(e => !items.some(n => e.tipo === n.tipo && e.desc === n.desc && e.data === n.data));
+  arr.push(...items);
+  store.setLanc(arr);
 
   rDash(); rHist();
-  toast(`✅ ${items.length} lançamento(s) salvo(s)!`);
+  toast(`✅ ${items.length} lançamento(s) salvo(s)! Meta: ${fmt(novaMeta)}`);
   setTimeout(() => {
     confirmLock = false;
     $('bConfirm').disabled = false;
@@ -648,12 +675,16 @@ function saveSaldos(){
   toast('✅ Saldos atualizados!');
 }
 
-/* ── HISTÓRICO ──────────────────────────────── */
+/* ── HISTÓRICO (com edição/exclusão) ────────── */
+let editingLancId = null;
+
 function rHist(){
   const it = store.lanc();
-  $('hBox').innerHTML = !it.length
+  // Ordenar do mais recente para o mais antigo (maior id primeiro)
+  const sorted = [...it].sort((a,b) => b.id - a.id);
+  $('hBox').innerHTML = !sorted.length
     ? '<div class="empty"><span>📋</span>Nenhum lançamento este mês</div>'
-    : it.map(i => {
+    : sorted.map(i => {
         const isPositive = i.tipo === 'Receita' || (i.tipo === 'Investimento' && i.valor > 0);
         const isNegative = i.tipo === 'Despesa Extra' || i.tipo === 'Cartão' || i.tipo === 'Conta Fixa' || (i.tipo === 'Investimento' && i.valor < 0);
         let signClass = 'neutral';
@@ -662,12 +693,62 @@ function rHist(){
         else if (isNegative) { signClass = 'minus'; signChar = '−'; }
         else signChar = '';
         const displayVal = Math.abs(i.valor);
-        return `<div class="hist">
+        return `<div class="hist" data-id="${i.id}">
           <div class="d" style="background:${ICOL[i.tipo] || 'var(--s2)'}">${ICON[i.tipo] || '•'}</div>
           <div class="i"><div class="t">${i.desc}</div><div class="m">${i.tipo} · ${fmtD(i.data)}</div></div>
           <div class="v ${signClass}">${signChar} ${fmt(displayVal)}</div>
+          <div class="actions">
+            <button class="edit-lanc" title="Editar">✏️</button>
+            <button class="del-lanc" title="Excluir">🗑</button>
+          </div>
         </div>`;
       }).join('');
+}
+
+function openEditLanc(id){
+  const lanc = store.lanc().find(l => l.id == id);
+  if (!lanc) return;
+  editingLancId = id;
+  $('editVal').value = Math.abs(lanc.valor).toLocaleString('pt-BR', {minimumFractionDigits:2});
+  $('editDesc').value = lanc.desc;
+  $('editData').value = lanc.data;
+  $('mEditLanc').classList.add('on');
+}
+
+function deleteLanc(id){
+  if (!confirm('Excluir este lançamento permanentemente?')) return;
+  let arr = store.lanc();
+  arr = arr.filter(l => l.id != id);
+  store.setLanc(arr);
+  $('mEditLanc').classList.remove('on');
+  rDash(); rHist();
+  toast('🗑 Lançamento removido');
+}
+
+function updateLanc(){
+  const newVal = parseMoney($('editVal').value);
+  if (newVal <= 0) { toast('Valor deve ser maior que zero'); return; }
+  const arr = store.lanc();
+  const index = arr.findIndex(l => l.id == editingLancId);
+  if (index === -1) return;
+  const oldLanc = arr[index];
+  // manter o mesmo sinal (se era despesa, continua negativo; se receita, positivo)
+  let newValSigned = newVal;
+  if (oldLanc.tipo === 'Despesa Extra' || oldLanc.tipo === 'Cartão' || oldLanc.tipo === 'Conta Fixa') newValSigned = -newVal;
+  else if (oldLanc.tipo === 'Investimento') {
+    // manter o sinal original: se era negativo, continua negativo
+    if (oldLanc.valor < 0) newValSigned = -newVal;
+  }
+  arr[index] = {
+    ...oldLanc,
+    valor: newValSigned,
+    desc: $('editDesc').value.trim() || oldLanc.desc,
+    data: $('editData').value
+  };
+  store.setLanc(arr);
+  $('mEditLanc').classList.remove('on');
+  rDash(); rHist();
+  toast('✏️ Lançamento atualizado');
 }
 
 /* ── NAVEGAÇÃO ──────────────────────────────── */
@@ -683,7 +764,7 @@ function go(p){
   else if (p === 'lanc') rLancTabs();
 }
 
-/* ── EVENTOS (delegation) ───────────────────── */
+/* ── EVENTOS ────────────────────────────────── */
 $('nav').addEventListener('click', e => {
   const b = e.target.closest('button[data-p]');
   if (b) go(b.dataset.p);
@@ -696,6 +777,21 @@ $('lTabs').addEventListener('click', e => {
   b.classList.add('on');
   lTipo = b.dataset.t;
   rLancTabs();
+});
+
+// Delegação para botões de editar/excluir no histórico
+$('hBox').addEventListener('click', e => {
+  const btnEdit = e.target.closest('.edit-lanc');
+  const btnDel = e.target.closest('.del-lanc');
+  if (btnEdit) {
+    const histDiv = btnEdit.closest('.hist');
+    const id = histDiv.dataset.id;
+    openEditLanc(id);
+  } else if (btnDel) {
+    const histDiv = btnDel.closest('.hist');
+    const id = histDiv.dataset.id;
+    deleteLanc(id);
+  }
 });
 
 $('rBox').addEventListener('click', e => {
@@ -722,8 +818,10 @@ $('bLanc').addEventListener('click', saveLanc);
 $('bSaldos').addEventListener('click', saveSaldos);
 $('mMovB').addEventListener('click', confirmMov);
 $('mEdtB').addEventListener('click', confirmEdt);
+$('confirmEditLanc').addEventListener('click', updateLanc);
+$('deleteLancBtn').addEventListener('click', () => { if(editingLancId) deleteLanc(editingLancId); });
 $('bClear').addEventListener('click', () => {
-  if (confirm('Limpar todos os lançamentos do mês atual?')) {
+  if (confirm('Limpar todos os lançamentos do mês atual? Esta ação não pode ser desfeita.')) {
     localStorage.removeItem(K());
     rDash(); rHist();
     toast('🗑 Mês limpo');
