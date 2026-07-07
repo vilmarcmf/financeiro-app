@@ -34,8 +34,7 @@
             --header-height: 56px;
             --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
-        html,
-        body {
+        html, body {
             height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background: var(--bg);
@@ -45,27 +44,16 @@
             overflow: hidden;
             user-select: none;
         }
-        input,
-        select,
-        textarea,
-        button {
+        input, select, textarea, button {
             font: inherit;
             color: inherit;
             border: none;
             outline: none;
             background: none;
         }
-        button {
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 8px;
-        }
+        button { cursor: pointer; touch-action: manipulation; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
 
         /* ===== LAYOUT ===== */
         #app {
@@ -90,15 +78,8 @@
             z-index: 10;
             position: relative;
         }
-        #header h1 {
-            font-size: 18px;
-            font-weight: 600;
-            letter-spacing: -0.3px;
-        }
-        #header-actions {
-            display: flex;
-            gap: 12px;
-        }
+        #header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+        #header-actions { display: flex; gap: 12px; }
         #header-actions button {
             color: #fff;
             font-size: 20px;
@@ -111,8 +92,15 @@
             background: rgba(255, 255, 255, 0.15);
             transition: background 0.2s;
         }
-        #header-actions button:active {
-            background: rgba(255, 255, 255, 0.3);
+        #header-actions button:active { background: rgba(255, 255, 255, 0.3); }
+        #sync-indicator {
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10px;
+            color: rgba(255,255,255,0.85);
         }
 
         /* ===== TABS ===== */
@@ -129,9 +117,7 @@
             z-index: 10;
             padding-bottom: var(--safe-bottom);
         }
-        #tab-bar::-webkit-scrollbar {
-            display: none;
-        }
+        #tab-bar::-webkit-scrollbar { display: none; }
         .tab-btn {
             flex: 0 0 auto;
             padding: 0 12px;
@@ -149,17 +135,9 @@
             position: relative;
             white-space: nowrap;
         }
-        .tab-btn .tab-icon {
-            font-size: 20px;
-            line-height: 1;
-        }
-        .tab-btn.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-        }
-        .tab-btn:active {
-            opacity: 0.6;
-        }
+        .tab-btn .tab-icon { font-size: 20px; line-height: 1; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-btn:active { opacity: 0.6; }
 
         /* ===== CONTENT ===== */
         #content {
@@ -170,22 +148,11 @@
             padding: 12px 12px 8px;
             background: var(--bg);
         }
-        .tab-panel {
-            display: none;
-            animation: fadeUp 0.25s ease;
-        }
-        .tab-panel.active {
-            display: block;
-        }
+        .tab-panel { display: none; animation: fadeUp 0.25s ease; }
+        .tab-panel.active { display: block; }
         @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         /* ===== CARDS ===== */
@@ -214,12 +181,7 @@
         }
 
         /* ===== FORM ELEMENTS ===== */
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            margin-bottom: 10px;
-        }
+        .input-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
         .input-group label {
             font-size: 12px;
             font-weight: 500;
@@ -227,8 +189,7 @@
             text-transform: uppercase;
             letter-spacing: 0.3px;
         }
-        .input-group input,
-        .input-group select {
+        .input-group input, .input-group select {
             padding: 10px 12px;
             background: var(--bg);
             border-radius: 10px;
@@ -239,18 +200,10 @@
             -webkit-appearance: none;
             appearance: none;
         }
-        .input-group input:focus,
-        .input-group select:focus {
-            border-color: var(--primary);
-            background: #fff;
-        }
-        .input-group input[type="number"] {
-            -moz-appearance: textfield;
-        }
+        .input-group input:focus, .input-group select:focus { border-color: var(--primary); background: #fff; }
+        .input-group input[type="number"] { -moz-appearance: textfield; }
         .input-group input[type="number"]::-webkit-outer-spin-button,
-        .input-group input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-        }
+        .input-group input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
         .btn {
             display: inline-flex;
@@ -266,46 +219,16 @@
             min-height: 44px;
             touch-action: manipulation;
         }
-        .btn:active {
-            transform: scale(0.96);
-        }
-        .btn-primary {
-            background: var(--primary);
-            color: #fff;
-        }
-        .btn-primary:active {
-            background: var(--primary-dark);
-        }
-        .btn-success {
-            background: var(--success);
-            color: #fff;
-        }
-        .btn-danger {
-            background: var(--danger);
-            color: #fff;
-        }
-        .btn-outline {
-            background: transparent;
-            color: var(--text-secondary);
-            border: 1.5px solid var(--border);
-        }
-        .btn-outline:active {
-            background: var(--bg);
-        }
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 12px;
-            min-height: 32px;
-        }
-        .btn-block {
-            width: 100%;
-            justify-content: center;
-        }
-        .btn-group {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:active { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-outline { background: transparent; color: var(--text-secondary); border: 1.5px solid var(--border); }
+        .btn-outline:active { background: var(--bg); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; min-height: 32px; }
+        .btn-block { width: 100%; justify-content: center; }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
 
         /* ===== LIST ITEMS ===== */
         .list-item {
@@ -316,31 +239,12 @@
             border-bottom: 1px solid var(--border);
             gap: 8px;
         }
-        .list-item:last-child {
-            border-bottom: none;
-        }
-        .list-item .info {
-            flex: 1;
-            min-width: 0;
-        }
-        .list-item .info .name {
-            font-weight: 500;
-            font-size: 14px;
-        }
-        .list-item .info .sub {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-        .list-item .value {
-            font-weight: 600;
-            font-size: 15px;
-            white-space: nowrap;
-        }
-        .list-item .actions {
-            display: flex;
-            gap: 4px;
-            flex-shrink: 0;
-        }
+        .list-item:last-child { border-bottom: none; }
+        .list-item .info { flex: 1; min-width: 0; }
+        .list-item .info .name { font-weight: 500; font-size: 14px; }
+        .list-item .info .sub { font-size: 12px; color: var(--text-secondary); }
+        .list-item .value { font-weight: 600; font-size: 15px; white-space: nowrap; }
+        .list-item .actions { display: flex; gap: 4px; flex-shrink: 0; }
         .list-item .actions button {
             width: 32px;
             height: 32px;
@@ -352,13 +256,8 @@
             background: var(--bg);
             color: var(--text-secondary);
         }
-        .list-item .actions button:active {
-            background: var(--border);
-        }
-        .list-item .actions button.danger:active {
-            background: var(--danger);
-            color: #fff;
-        }
+        .list-item .actions button:active { background: var(--border); }
+        .list-item .actions button.danger:active { background: var(--danger); color: #fff; }
         .list-item .check {
             width: 24px;
             height: 24px;
@@ -372,19 +271,10 @@
             font-size: 14px;
             color: transparent;
         }
-        .list-item .check.checked {
-            background: var(--success);
-            border-color: var(--success);
-            color: #fff;
-        }
+        .list-item .check.checked { background: var(--success); border-color: var(--success); color: #fff; }
 
         /* ===== TOGGLE ===== */
-        .toggle-wrap {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-        }
+        .toggle-wrap { display: flex; align-items: center; gap: 10px; cursor: pointer; }
         .toggle-track {
             width: 44px;
             height: 26px;
@@ -406,12 +296,8 @@
             transition: transform 0.25s;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
         }
-        .toggle-track.on {
-            background: var(--primary);
-        }
-        .toggle-track.on::after {
-            transform: translateX(18px);
-        }
+        .toggle-track.on { background: var(--primary); }
+        .toggle-track.on::after { transform: translateX(18px); }
 
         /* ===== MODAL / OVERLAY ===== */
         .modal-overlay {
@@ -425,17 +311,8 @@
             justify-content: center;
             animation: fadeIn 0.2s ease;
         }
-        .modal-overlay.open {
-            display: flex;
-        }
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
+        .modal-overlay.open { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .modal-sheet {
             background: var(--card);
             border-radius: var(--radius) var(--radius) 0 0;
@@ -447,21 +324,9 @@
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
         }
-        .modal-overlay.open .modal-sheet {
-            transform: translateY(0);
-        }
-        .modal-handle {
-            width: 36px;
-            height: 4px;
-            border-radius: 2px;
-            background: var(--border);
-            margin: 0 auto 16px;
-        }
-        .modal-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
+        .modal-overlay.open .modal-sheet { transform: translateY(0); }
+        .modal-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto 16px; }
+        .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
 
         /* ===== HISTORY ===== */
         .history-item {
@@ -472,12 +337,7 @@
             gap: 8px;
             align-items: baseline;
         }
-        .history-item .h-time {
-            color: var(--text-secondary);
-            font-size: 11px;
-            white-space: nowrap;
-            min-width: 60px;
-        }
+        .history-item .h-time { color: var(--text-secondary); font-size: 11px; white-space: nowrap; min-width: 60px; }
         .history-item .h-action {
             font-weight: 500;
             font-size: 12px;
@@ -486,64 +346,23 @@
             background: var(--bg);
             white-space: nowrap;
         }
-        .history-item .h-desc {
-            flex: 1;
-            word-break: break-word;
-        }
+        .history-item .h-desc { flex: 1; word-break: break-word; }
 
         /* ===== MISC ===== */
-        .text-center {
-            text-align: center;
-        }
-        .text-muted {
-            color: var(--text-secondary);
-            font-size: 13px;
-        }
-        .mt-8 {
-            margin-top: 8px;
-        }
-        .mb-8 {
-            margin-bottom: 8px;
-        }
-        .flex {
-            display: flex;
-        }
-        .flex-between {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .gap-8 {
-            gap: 8px;
-        }
-        .gap-4 {
-            gap: 4px;
-        }
-        .wrap {
-            flex-wrap: wrap;
-        }
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-        .grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-        }
+        .text-center { text-align: center; }
+        .text-muted { color: var(--text-secondary); font-size: 13px; }
+        .mt-8 { margin-top: 8px; }
+        .mb-8 { margin-bottom: 8px; }
+        .flex { display: flex; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .gap-8 { gap: 8px; }
+        .gap-4 { gap: 4px; }
+        .wrap { flex-wrap: wrap; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 
-        .empty-state {
-            text-align: center;
-            padding: 24px 0;
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-        .empty-state .icon {
-            font-size: 40px;
-            margin-bottom: 8px;
-            opacity: 0.5;
-        }
+        .empty-state { text-align: center; padding: 24px 0; color: var(--text-secondary); font-size: 14px; }
+        .empty-state .icon { font-size: 40px; margin-bottom: 8px; opacity: 0.5; }
 
         .tag {
             display: inline-block;
@@ -554,38 +373,20 @@
             background: var(--bg);
             color: var(--text-secondary);
         }
+        .tag.warn { background: #fff4d6; color: #92700c; }
 
-        .highlight {
-            background: var(--warning);
-            padding: 0 4px;
-            border-radius: 4px;
-        }
+        .highlight { background: var(--warning); padding: 0 4px; border-radius: 4px; }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 400px) {
-            .tab-btn {
-                padding: 0 8px;
-                min-width: 44px;
-                font-size: 9px;
-            }
-            .tab-btn .tab-icon {
-                font-size: 18px;
-            }
-            .card {
-                padding: 12px;
-            }
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-            .grid-3 {
-                grid-template-columns: 1fr 1fr;
-            }
+            .tab-btn { padding: 0 8px; min-width: 44px; font-size: 9px; }
+            .tab-btn .tab-icon { font-size: 18px; }
+            .card { padding: 12px; }
+            .grid-2 { grid-template-columns: 1fr; }
+            .grid-3 { grid-template-columns: 1fr 1fr; }
         }
         @media (min-width: 481px) {
-            #app {
-                border-left: 1px solid var(--border);
-                border-right: 1px solid var(--border);
-            }
+            #app { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
         }
 
         /* ===== TOAST ===== */
@@ -607,48 +408,18 @@
             text-align: center;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
         /* ===== PROGRESS BAR ===== */
-        .progress-bar {
-            height: 6px;
-            border-radius: 3px;
-            background: var(--border);
-            overflow: hidden;
-            margin-top: 4px;
-        }
-        .progress-bar .fill {
-            height: 100%;
-            border-radius: 3px;
-            background: var(--primary);
-            transition: width 0.3s;
-        }
-        .progress-bar .fill.green {
-            background: var(--success);
-        }
-        .progress-bar .fill.red {
-            background: var(--danger);
-        }
-        .progress-bar .fill.yellow {
-            background: var(--warning);
-        }
+        .progress-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-top: 4px; }
+        .progress-bar .fill { height: 100%; border-radius: 3px; background: var(--primary); transition: width 0.3s; }
+        .progress-bar .fill.green { background: var(--success); }
+        .progress-bar .fill.red { background: var(--danger); }
+        .progress-bar .fill.yellow { background: var(--warning); }
 
         /* ===== SCROLLABLE TABLE ===== */
-        .scroll-table {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            margin: 0 -4px;
-            padding: 0 4px;
-        }
-        .scroll-table table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-            min-width: 300px;
-        }
+        .scroll-table { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; padding: 0 4px; }
+        .scroll-table table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 300px; }
         .scroll-table th {
             text-align: left;
             padding: 6px 8px;
@@ -659,29 +430,13 @@
             letter-spacing: 0.3px;
             border-bottom: 1px solid var(--border);
         }
-        .scroll-table td {
-            padding: 6px 8px;
-            border-bottom: 1px solid var(--border);
-        }
-        .scroll-table tr:last-child td {
-            border-bottom: none;
-        }
-        .scroll-table .num {
-            text-align: right;
-            font-variant-numeric: tabular-nums;
-        }
+        .scroll-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+        .scroll-table tr:last-child td { border-bottom: none; }
+        .scroll-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 
         /* ===== CONFIG ===== */
-        .config-row {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            margin-bottom: 12px;
-        }
-        .config-row label {
-            font-size: 13px;
-            font-weight: 500;
-        }
+        .config-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+        .config-row label { font-size: 13px; font-weight: 500; }
         .config-row input {
             padding: 10px 12px;
             background: var(--bg);
@@ -689,10 +444,7 @@
             font-size: 14px;
             border: 1.5px solid transparent;
         }
-        .config-row input:focus {
-            border-color: var(--primary);
-            background: #fff;
-        }
+        .config-row input:focus { border-color: var(--primary); background: #fff; }
     </style>
 </head>
 <body>
@@ -736,6 +488,7 @@
                         📋 Contas Fixas do Mês
                         <button class="btn btn-sm btn-outline" id="add-conta-fixa-btn">+ Adicionar</button>
                     </div>
+                    <div class="text-muted mb-8">O check é só visual — marque quando você mesmo pagar. Ele zera automaticamente no início de cada mês (o mês anterior fica arquivado abaixo).</div>
                     <div id="contas-fixas-list"></div>
                     <div class="flex-between mt-8 text-muted" style="font-size:12px;">
                         <span>Total: <strong id="cf-total">R$ 0,00</strong></span>
@@ -755,6 +508,7 @@
                         🛒 Compras Parceladas
                         <button class="btn btn-sm btn-outline" id="add-parcela-btn">+ Adicionar</button>
                     </div>
+                    <div class="text-muted mb-8">Cadastre aqui só o que você quer acompanhar parcela a parcela. Se a compra já está na fatura do cartão, ela não deve ser somada de novo no saldo disponível (veja a aba Faturas).</div>
                     <div id="parcelas-list"></div>
                 </div>
                 <div class="card">
@@ -770,6 +524,7 @@
                         💳 Faturas de Cartão
                         <button class="btn btn-sm btn-outline" id="add-fatura-btn">+ Adicionar</button>
                     </div>
+                    <div class="text-muted mb-8">Digite o valor CHEIO da fatura (já inclui as parcelas daquele cartão). As parcelas da Aba 3 pagas em cartão não são somadas de novo aqui.</div>
                     <div id="faturas-list"></div>
                 </div>
             </div>
@@ -792,7 +547,7 @@
                     <div id="dashboard-resumo"></div>
                 </div>
                 <div class="card">
-                    <div class="card-title">📈 Evolução Mensal</div>
+                    <div class="card-title">📈 Evolução Mensal (todos os tópicos)</div>
                     <div id="dashboard-evolucao"></div>
                 </div>
             </div>
@@ -849,7 +604,7 @@
 
             <div class="config-row">
                 <label>Google Sheets Web App URL</label>
-                <input type="url" id="config-sheets-url" placeholder="https://script.google.com/..." />
+                <input type="url" id="config-sheets-url" placeholder="https://script.google.com/.../exec" />
             </div>
             <div class="config-row">
                 <label>Token de Segurança</label>
@@ -869,8 +624,9 @@
                 <button class="btn btn-outline" id="config-force-sync-btn">🔄 Sincronizar Agora</button>
             </div>
             <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-secondary);">
-                <strong>Dica:</strong> O app envia cada ação para o Google Sheets via POST. 
-                Se estiver offline, as ações são enfileiradas e reenviadas quando a internet voltar.
+                <strong>Dica:</strong> o app envia cada ação e o estado atual para o Google Sheets via POST
+                (veja Code.gs). Se estiver offline, as ações ficam na fila e são reenviadas quando a internet voltar.
+                Faça backup (Exportar JSON) de vez em quando — é a sua cópia de segurança independente da planilha.
             </div>
         </div>
     </div>
@@ -880,7 +636,7 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — CÓDIGO COMPLETO
+        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 2)
         //  Sem frameworks, sem dependências externas.
         //  Persistência: localStorage, offline com Service Worker.
         // ================================================================
@@ -893,8 +649,13 @@
             // --------------------------------------------------------------
             const STORAGE_KEY = 'financas_data';
             const MAX_UNDO = 50;
+            const MAX_HISTORICO_ACOES = 300;
 
-            // Estrutura padrão
+            // Campos que NUNCA entram dentro de um snapshot de undo,
+            // porque senão o snapshot cresce exponencialmente (cada
+            // snapshot conteria todos os snapshots anteriores).
+            const CAMPOS_FORA_DO_UNDO = ['undoStack', 'undoIndex', 'historicoAcoes', 'syncQueue'];
+
             function defaultData() {
                 return {
                     receitaMes: 0,
@@ -905,7 +666,10 @@
                         { id: genId(), nome: 'NUBANK', saldo: 0 }
                     ],
                     contasFixas: [],
-                    historicoMensalCF: {}, // { '2025-01': [{nome, valor, pago}] }
+                    // Snapshot arquivado por mês, só de contas fixas (detalhe linha a linha)
+                    historicoMensalCF: {}, // { '2025-01': [{id, nome, valor, pago}], ... }
+                    // Snapshot arquivado por mês, de TODOS os tópicos (para a evolução do dashboard)
+                    historicoMensalGeral: {}, // { '2025-01': { receita, totalSaldos, totalContasFixas, totalContasFixasPagas, totalFaturas, totalCaixinhas, totalParcelasRestantes, completo } }
                     parcelas: [],
                     faturas: [
                         { id: genId(), nome: 'BTG', valor: 0 },
@@ -913,22 +677,21 @@
                         { id: genId(), nome: 'NUBANK', valor: 0 }
                     ],
                     caixinhas: [],
-                    // Histórico de ações (para undo)
-                    historicoAcoes: [], // [{id, timestamp, tipo, antes, depois, desc}]
-                    undoStack: [], // cópia do estado para undo
-                    undoIndex: -1,
+                    // Histórico de ações (visível, para auditoria — não confundir com undoStack)
+                    historicoAcoes: [], // [{id, timestamp, desc, antes, depois}]
+                    // Pilha de undo: snapshots do restante do "data" (sem os campos acima)
+                    undoStack: [],
+                    undoIndex: -1, // aponta para o snapshot que representa o estado ATUAL
                     // Config
                     googleSheetsUrl: '',
                     googleSheetsToken: '',
-                    syncQueue: [], // [{action, data, timestamp}]
+                    syncQueue: [], // [{id, timestamp, tipo, payload, tentativas}]
                     ultimoMesVerificado: '',
-                    // Controle de quais itens entram no saldo disponível
                     disponivelConfig: {
                         incluirReceita: true,
                         incluirContasFixas: true,
                         incluirFaturas: true,
                         incluirParcelasBoleto: true,
-                        // Mapa de exclusões individuais por id
                         excluirContaFixa: {},
                         excluirFatura: {},
                         excluirParcela: {}
@@ -948,13 +711,15 @@
             }
 
             function fmt(n) {
-                return 'R$ ' + Number(n).toFixed(2).replace('.', ',');
+                return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',');
             }
 
             function fmtDate(d) {
                 const dt = new Date(d);
-                return dt.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit',
-                    minute: '2-digit' });
+                return dt.toLocaleString('pt-BR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
             }
 
             function nowISO() {
@@ -974,19 +739,13 @@
                 return getMesAno();
             }
 
-            function getPrevMonthKey() {
-                const d = new Date();
-                d.setMonth(d.getMonth() - 1);
-                return getMesAno(d);
-            }
-
             function parseMonthKey(key) {
                 const parts = key.split('-');
                 return { year: parseInt(parts[0]), month: parseInt(parts[1]) };
             }
 
             function monthDiff(a, b) {
-                // a e b são 'YYYY-MM'
+                // quantos meses de "b" até "a" (a - b), ambos 'YYYY-MM'
                 const pa = parseMonthKey(a);
                 const pb = parseMonthKey(b);
                 return (pa.year - pb.year) * 12 + (pa.month - pb.month);
@@ -996,10 +755,8 @@
                 const p = parseMonthKey(key);
                 let m = p.month + n;
                 let y = p.year;
-                while (m > 12) { m -= 12;
-                    y++; }
-                while (m < 1) { m += 12;
-                    y--; }
+                while (m > 12) { m -= 12; y++; }
+                while (m < 1) { m += 12; y--; }
                 return getMesAnoFromDate(y, m);
             }
 
@@ -1017,8 +774,8 @@
                     const raw = localStorage.getItem(STORAGE_KEY);
                     if (raw) {
                         const d = JSON.parse(raw);
-                        // Garantir campos novos
                         if (!d.historicoMensalCF) d.historicoMensalCF = {};
+                        if (!d.historicoMensalGeral) d.historicoMensalGeral = {};
                         if (!d.historicoAcoes) d.historicoAcoes = [];
                         if (!d.undoStack) d.undoStack = [];
                         if (d.undoIndex === undefined) d.undoIndex = -1;
@@ -1044,38 +801,64 @@
             function saveData() {
                 try {
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                } catch (e) { console.warn('Erro ao salvar dados', e); }
+                } catch (e) {
+                    console.warn('Erro ao salvar dados', e);
+                    toast('⚠️ Erro ao salvar — armazenamento pode estar cheio.');
+                }
             }
 
             // --------------------------------------------------------------
             // 4. UNDO / HISTÓRICO
+            //
+            // undoStack guarda cópias "enxutas" de `data` (sem undoStack,
+            // historicoAcoes nem syncQueue — senão cada snapshot carregaria
+            // todos os anteriores dentro dele e o storage explode).
+            //
+            // undoIndex aponta para o snapshot que corresponde ao estado
+            // ATUAL. Ao desfazer, voltamos para undoIndex-1. Se o usuário
+            // fizer uma ação nova depois de desfazer, descartamos os
+            // snapshots "futuros" (o ramo abandonado), como em qualquer
+            // undo/redo de editor de texto.
             // --------------------------------------------------------------
+
+            function snapshotEnxuto() {
+                const copy = {};
+                for (const key in data) {
+                    if (CAMPOS_FORA_DO_UNDO.indexOf(key) === -1) {
+                        copy[key] = data[key];
+                    }
+                }
+                return JSON.parse(JSON.stringify(copy));
+            }
+
             function pushUndo(desc, antes, depois) {
-                // Salva o estado atual para undo
-                const snapshot = JSON.stringify(data);
-                data.undoStack.push(snapshot);
+                // Descarta qualquer ramo "futuro" (de undos anteriores não usados)
+                if (data.undoIndex < data.undoStack.length - 1) {
+                    data.undoStack = data.undoStack.slice(0, data.undoIndex + 1);
+                }
+
+                data.undoStack.push(snapshotEnxuto());
                 if (data.undoStack.length > MAX_UNDO) {
                     data.undoStack.shift();
                 }
                 data.undoIndex = data.undoStack.length - 1;
 
-                // Registra ação no histórico
                 const acao = {
                     id: genId(),
                     timestamp: nowISO(),
-                    tipo: 'acao',
                     desc: desc,
                     antes: antes || null,
                     depois: depois || null
                 };
                 data.historicoAcoes.push(acao);
-                if (data.historicoAcoes.length > 200) {
+                if (data.historicoAcoes.length > MAX_HISTORICO_ACOES) {
                     data.historicoAcoes.shift();
                 }
+
                 saveData();
                 renderHistory();
-                // Envia para Google Sheets
                 enqueueSync('acao', acao);
+                enqueueSyncEstado();
             }
 
             function undo() {
@@ -1086,28 +869,22 @@
                 data.undoIndex--;
                 const prev = data.undoStack[data.undoIndex];
                 if (prev) {
-                    const oldData = JSON.parse(prev);
-                    // Restaura preservando algumas configs
-                    const configBackup = {
-                        googleSheetsUrl: data.googleSheetsUrl,
-                        googleSheetsToken: data.googleSheetsToken,
-                        syncQueue: data.syncQueue,
-                        ultimoMesVerificado: data.ultimoMesVerificado,
-                        disponivelConfig: data.disponivelConfig
-                    };
-                    Object.assign(data, oldData);
-                    Object.assign(data, configBackup);
+                    const restored = JSON.parse(JSON.stringify(prev));
+                    // Preserva os campos que ficam fora do undo (config, filas, etc.)
+                    const preservar = {};
+                    CAMPOS_FORA_DO_UNDO.forEach(k => { preservar[k] = data[k]; });
+                    Object.keys(data).forEach(k => delete data[k]);
+                    Object.assign(data, restored, preservar);
                     saveData();
                     renderAll();
                     toast('↩ Desfeito!');
+                    enqueueSyncEstado();
                 }
             }
 
             function clearHistory() {
-                if (!confirm('Limpar todo o histórico de ações?')) return;
+                if (!confirm('Limpar todo o histórico visível de ações? (isso não afeta o desfazer)')) return;
                 data.historicoAcoes = [];
-                data.undoStack = [];
-                data.undoIndex = -1;
                 saveData();
                 renderHistory();
                 toast('Histórico limpo.');
@@ -1119,7 +896,6 @@
             function enqueueSync(tipo, payload) {
                 const url = data.googleSheetsUrl;
                 if (!url) return;
-                const token = data.googleSheetsToken;
                 const item = {
                     id: genId(),
                     timestamp: nowISO(),
@@ -1130,6 +906,22 @@
                 data.syncQueue.push(item);
                 saveData();
                 processSyncQueue();
+            }
+
+            // Envia o estado atual completo (não só o log de ações), para que
+            // a planilha reflita saldos/contas fixas/parcelas/faturas/caixinhas
+            // "nos mínimos detalhes", como pedido.
+            function enqueueSyncEstado() {
+                if (!data.googleSheetsUrl) return;
+                enqueueSync('estado', {
+                    receitaMes: data.receitaMes,
+                    contas: data.contas,
+                    contasFixas: data.contasFixas,
+                    parcelas: data.parcelas,
+                    faturas: data.faturas,
+                    caixinhas: data.caixinhas,
+                    historicoMensal: data.historicoMensalCF
+                });
             }
 
             async function processSyncQueue() {
@@ -1151,12 +943,11 @@
                 updateSyncStatus('🔄 Enviando ' + data.syncQueue.length + ' ações...');
 
                 const toSend = [...data.syncQueue];
-                let success = 0;
                 for (const item of toSend) {
                     try {
                         const resp = await fetch(url, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                             body: JSON.stringify({
                                 token: data.googleSheetsToken || '',
                                 action: item.tipo,
@@ -1165,15 +956,12 @@
                             })
                         });
                         if (resp.ok) {
-                            success++;
-                            // Remove da fila
                             const idx = data.syncQueue.findIndex(x => x.id === item.id);
                             if (idx !== -1) data.syncQueue.splice(idx, 1);
                             saveData();
                         } else {
                             item.tentativas++;
                             if (item.tentativas > 5) {
-                                // Remove após muitas falhas
                                 const idx = data.syncQueue.findIndex(x => x.id === item.id);
                                 if (idx !== -1) data.syncQueue.splice(idx, 1);
                                 saveData();
@@ -1189,11 +977,8 @@
                     }
                 }
                 isSyncing = false;
-                if (data.syncQueue.length > 0) {
-                    updateSyncStatus('⚠️ ' + data.syncQueue.length + ' ações pendentes');
-                } else {
-                    updateSyncStatus('✅ Sincronizado');
-                }
+                updateSyncStatus(data.syncQueue.length > 0 ?
+                    '⚠️ ' + data.syncQueue.length + ' ações pendentes' : '✅ Sincronizado');
                 saveData();
             }
 
@@ -1202,9 +987,8 @@
                 if (el) el.textContent = msg;
             }
 
-            // Monitora online/offline
             window.addEventListener('online', () => {
-                toast('🌐 Internet恢复. Sincronizando...');
+                toast('🌐 Internet de volta. Sincronizando...');
                 processSyncQueue();
             });
             window.addEventListener('offline', () => {
@@ -1212,82 +996,80 @@
             });
 
             // --------------------------------------------------------------
-            // 6. RESET MENSAL (Contas Fixas)
+            // 6. RESET / ARQUIVAMENTO MENSAL (Contas Fixas)
+            //
+            // Regra: o check é 100% manual. A única coisa automática é:
+            //   1) arquivar o mês que TERMINOU (com o estado real dele),
+            //   2) zerar os checks para o mês novo começar "limpo".
+            //
+            // Importante: isso arquiva o mês ANTERIOR (ultimoMesVerificado),
+            // nunca o mês atual — o mês atual só é arquivado quando ele
+            // também terminar, na próxima virada.
             // --------------------------------------------------------------
             function verificarResetMensal() {
                 const current = getCurrentMonthKey();
                 const ultimo = data.ultimoMesVerificado;
 
-                // Se já verificou este mês, não faz nada
-                if (ultimo === current) return;
-
-                // Se não tem último, marca e sai
                 if (!ultimo) {
+                    // Primeira vez que o app roda: só marca o mês atual, sem arquivar nada
                     data.ultimoMesVerificado = current;
                     saveData();
                     return;
                 }
 
-                // Verifica quantos meses passaram
+                if (ultimo === current) return; // mesmo mês, nada a fazer
+
                 const diff = monthDiff(current, ultimo);
                 if (diff <= 0) {
-                    data.ultimoMesVerificado = current;
-                    saveData();
+                    // relógio do aparelho voltou no tempo ou algo estranho — não mexe em nada
                     return;
                 }
 
-                // Arquiva meses intermediários
+                // 1) Arquiva o mês que ACABOU DE TERMINAR com o estado real das contas fixas
+                arquivarMes(ultimo, true);
+
+                // 2) Se o app ficou fechado por MAIS de um mês, os meses "pulados" no meio
+                //    não têm dado real de pagamento — arquiva como incompletos, para não
+                //    inventar histórico, mas sem deixar buraco na linha do tempo.
                 let mes = ultimo;
-                for (let i = 0; i < diff; i++) {
+                for (let i = 1; i < diff; i++) {
                     mes = addMonths(mes, 1);
-                    arquivarMes(mes);
+                    arquivarMes(mes, false);
                 }
 
-                // Reseta os checks das contas fixas
-                data.contasFixas.forEach(cf => cf.pago = false);
+                // 3) Reseta os checks para o mês novo
+                data.contasFixas.forEach(cf => { cf.pago = false; });
                 data.ultimoMesVerificado = current;
                 saveData();
-                renderAll();
-                toast('📆 Reset mensal: contas fixas desmarcadas e arquivadas.');
+                toast(diff > 1 ?
+                    '📆 Vários meses sem abrir o app: ' + diff + ' meses arquivados, checks zerados.' :
+                    '📆 Novo mês: contas fixas arquivadas e checks zerados.');
             }
 
-            function arquivarMes(mesKey) {
-                // Salva snapshot das contas fixas para aquele mês
-                if (!data.historicoMensalCF) data.historicoMensalCF = {};
-                // Se já existe, não sobrescreve
-                if (data.historicoMensalCF[mesKey]) return;
-
-                const snapshot = data.contasFixas.map(cf => ({
-                    id: cf.id,
-                    nome: cf.nome,
-                    valor: cf.valor,
-                    pago: cf.pago || false
-                }));
-                data.historicoMensalCF[mesKey] = snapshot;
-                saveData();
-            }
-
-            // Reconstroi meses passados se o app ficou fechado por muito tempo
-            function reconstruirMesesPassados() {
-                const current = getCurrentMonthKey();
-                const ultimo = data.ultimoMesVerificado;
-                if (!ultimo) return;
-
-                const diff = monthDiff(current, ultimo);
-                if (diff <= 1) return;
-
-                // Arquiva os meses que passaram
-                let mes = ultimo;
-                for (let i = 0; i < diff; i++) {
-                    mes = addMonths(mes, 1);
-                    if (mes !== current) {
-                        arquivarMes(mes);
-                    }
+            // completo=true: usa o estado real atual das contas fixas (mês que terminou agora)
+            // completo=false: mês pulado sem dado real — arquiva os nomes/valores mas marca como incompleto
+            function arquivarMes(mesKey, completo) {
+                if (!data.historicoMensalCF[mesKey]) {
+                    data.historicoMensalCF[mesKey] = data.contasFixas.map(cf => ({
+                        id: cf.id,
+                        nome: cf.nome,
+                        valor: cf.valor,
+                        pago: completo ? !!cf.pago : false
+                    }));
                 }
-                // Reseta checks
-                data.contasFixas.forEach(cf => cf.pago = false);
-                data.ultimoMesVerificado = current;
-                saveData();
+                if (!data.historicoMensalGeral[mesKey]) {
+                    const totalCF = data.contasFixas.reduce((s, c) => s + c.valor, 0);
+                    const pagasCF = completo ? data.contasFixas.filter(c => c.pago).reduce((s, c) => s + c.valor, 0) : 0;
+                    data.historicoMensalGeral[mesKey] = {
+                        receita: completo ? (data.receitaMes || 0) : null,
+                        totalSaldos: completo ? data.contas.reduce((s, c) => s + c.saldo, 0) : null,
+                        totalContasFixas: totalCF,
+                        totalContasFixasPagas: pagasCF,
+                        totalFaturas: completo ? data.faturas.reduce((s, f) => s + f.valor, 0) : null,
+                        totalCaixinhas: completo ? data.caixinhas.reduce((s, c) => s + c.saldo, 0) : null,
+                        completo: completo
+                    };
+                }
             }
 
             // --------------------------------------------------------------
@@ -1305,7 +1087,8 @@
                 renderDashboard();
                 renderSaldoDisponivel();
                 renderHistory();
-                updateSyncStatus(data.syncQueue.length > 0 ? '⏳ ' + data.syncQueue.length + ' pendentes' : '✅ Sincronizado');
+                updateSyncStatus(data.syncQueue.length > 0 ?
+                    '⏳ ' + data.syncQueue.length + ' pendentes' : '✅ Sincronizado');
             }
 
             // ---------- TAB 1: RECEITA E SALDOS ----------
@@ -1318,15 +1101,13 @@
                 const el = document.getElementById('contas-list');
                 if (!el) return;
                 let html = '';
-                data.contas.forEach((c, i) => {
+                data.contas.forEach((c) => {
                     html += `
                         <div class="list-item" data-id="${c.id}">
-                            <div class="info">
-                                <div class="name">${c.nome}</div>
-                            </div>
+                            <div class="info"><div class="name">${escapeHtml(c.nome)}</div></div>
                             <div style="display:flex;align-items:center;gap:6px;">
-                                <input type="number" step="0.01" value="${c.saldo}" 
-                                       class="conta-saldo-input" data-id="${c.id}" 
+                                <input type="number" step="0.01" value="${c.saldo}"
+                                       class="conta-saldo-input" data-id="${c.id}"
                                        style="width:90px;padding:6px 8px;background:var(--bg);border-radius:8px;text-align:right;font-size:14px;"/>
                                 <div class="actions">
                                     <button class="conta-rename" data-id="${c.id}" title="Renomear">✏️</button>
@@ -1338,7 +1119,6 @@
                 });
                 el.innerHTML = html || '<div class="empty-state"><div class="icon">🏦</div>Nenhuma conta cadastrada.</div>';
 
-                // Eventos
                 el.querySelectorAll('.conta-saldo-input').forEach(inp => {
                     inp.addEventListener('change', function() {
                         const id = this.dataset.id;
@@ -1347,9 +1127,7 @@
                         if (conta) {
                             const antes = conta.saldo;
                             conta.saldo = val;
-                            pushUndo('Alterou saldo de ' + conta.nome + ' para ' + fmt(val), { saldo: antes },
-                            { saldo: val });
-                            saveData();
+                            pushUndo('Alterou saldo de ' + conta.nome + ' para ' + fmt(val), { saldo: antes }, { saldo: val });
                             renderAll();
                         }
                     });
@@ -1363,9 +1141,7 @@
                         if (novo && novo.trim()) {
                             const antes = conta.nome;
                             conta.nome = novo.trim();
-                            pushUndo('Renomeou conta "' + antes + '" para "' + conta.nome + '"', { nome: antes },
-                                { nome: conta.nome });
-                            saveData();
+                            pushUndo('Renomeou conta "' + antes + '" para "' + conta.nome + '"', { nome: antes }, { nome: conta.nome });
                             renderAll();
                         }
                     });
@@ -1378,9 +1154,7 @@
                         if (!confirm('Excluir conta "' + conta.nome + '"?')) return;
                         const antes = data.contas.map(c => ({ ...c }));
                         data.contas = data.contas.filter(c => c.id !== id);
-                        pushUndo('Excluiu conta "' + conta.nome + '"', { contas: antes }, { contas: data.contas
-                                .map(c => ({ ...c })) });
-                        saveData();
+                        pushUndo('Excluiu conta "' + conta.nome + '"', { contas: antes }, { contas: data.contas.map(c => ({ ...c })) });
                         renderAll();
                     });
                 });
@@ -1391,18 +1165,18 @@
                 const el = document.getElementById('contas-fixas-list');
                 if (!el) return;
                 let html = '';
-                data.contasFixas.forEach((cf, i) => {
+                data.contasFixas.forEach((cf) => {
                     const checked = cf.pago ? 'checked' : '';
                     html += `
                         <div class="list-item" data-id="${cf.id}">
                             <div class="check ${checked}" data-id="${cf.id}" style="cursor:pointer;">✓</div>
                             <div class="info">
-                                <div class="name">${cf.nome}</div>
+                                <div class="name">${escapeHtml(cf.nome)}</div>
                                 <div class="sub">${fmt(cf.valor)}</div>
                             </div>
                             <div style="display:flex;align-items:center;gap:4px;">
-                                <input type="number" step="0.01" value="${cf.valor}" 
-                                       class="cf-valor-input" data-id="${cf.id}" 
+                                <input type="number" step="0.01" value="${cf.valor}"
+                                       class="cf-valor-input" data-id="${cf.id}"
                                        style="width:80px;padding:4px 6px;background:var(--bg);border-radius:6px;text-align:right;font-size:13px;"/>
                                 <div class="actions">
                                     <button class="cf-rename" data-id="${cf.id}" title="Renomear">✏️</button>
@@ -1414,7 +1188,6 @@
                 });
                 el.innerHTML = html || '<div class="empty-state"><div class="icon">📋</div>Nenhuma conta fixa cadastrada.</div>';
 
-                // Toggle pago
                 el.querySelectorAll('.check').forEach(el2 => {
                     el2.addEventListener('click', function() {
                         const id = this.dataset.id;
@@ -1422,13 +1195,10 @@
                         if (!cf) return;
                         const antes = cf.pago;
                         cf.pago = !cf.pago;
-                        pushUndo('Marcou ' + cf.nome + ' como ' + (cf.pago ? 'pago' : 'não pago'), { pago: antes },
-                            { pago: cf.pago });
-                        saveData();
+                        pushUndo('Marcou ' + cf.nome + ' como ' + (cf.pago ? 'pago' : 'não pago'), { pago: antes }, { pago: cf.pago });
                         renderAll();
                     });
                 });
-                // Valor
                 el.querySelectorAll('.cf-valor-input').forEach(inp => {
                     inp.addEventListener('change', function() {
                         const id = this.dataset.id;
@@ -1437,9 +1207,7 @@
                         if (cf) {
                             const antes = cf.valor;
                             cf.valor = val;
-                            pushUndo('Alterou valor de ' + cf.nome + ' para ' + fmt(val), { valor: antes },
-                            { valor: val });
-                            saveData();
+                            pushUndo('Alterou valor de ' + cf.nome + ' para ' + fmt(val), { valor: antes }, { valor: val });
                             renderAll();
                         }
                     });
@@ -1453,9 +1221,7 @@
                         if (novo && novo.trim()) {
                             const antes = cf.nome;
                             cf.nome = novo.trim();
-                            pushUndo('Renomeou conta fixa "' + antes + '"', { nome: antes }, { nome: cf
-                                    .nome });
-                            saveData();
+                            pushUndo('Renomeou conta fixa "' + antes + '"', { nome: antes }, { nome: cf.nome });
                             renderAll();
                         }
                     });
@@ -1468,14 +1234,11 @@
                         if (!confirm('Excluir "' + cf.nome + '"?')) return;
                         const antes = data.contasFixas.map(c => ({ ...c }));
                         data.contasFixas = data.contasFixas.filter(c => c.id !== id);
-                        pushUndo('Excluiu conta fixa "' + cf.nome + '"', { contasFixas: antes }, { contasFixas: data
-                                .contasFixas.map(c => ({ ...c })) });
-                        saveData();
+                        pushUndo('Excluiu conta fixa "' + cf.nome + '"', { contasFixas: antes }, { contasFixas: data.contasFixas.map(c => ({ ...c })) });
                         renderAll();
                     });
                 });
 
-                // Totais
                 const total = data.contasFixas.reduce((s, c) => s + c.valor, 0);
                 const pagas = data.contasFixas.filter(c => c.pago).length;
                 document.getElementById('cf-total').textContent = fmt(total);
@@ -1496,7 +1259,9 @@
                     const items = data.historicoMensalCF[key] || [];
                     const total = items.reduce((s, i) => s + i.valor, 0);
                     const pagas = items.filter(i => i.pago).length;
-                    html += `<tr><td>${getMonthName(key)}</td><td>${items.length}</td><td class="num">${fmt(total)}</td><td class="num">${pagas}/${items.length}</td></tr>`;
+                    const geral = data.historicoMensalGeral[key];
+                    const incompleto = geral && geral.completo === false;
+                    html += `<tr><td>${getMonthName(key)}${incompleto ? ' <span class="tag warn">sem dado</span>' : ''}</td><td>${items.length}</td><td class="num">${fmt(total)}</td><td class="num">${pagas}/${items.length}</td></tr>`;
                 }
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
@@ -1507,15 +1272,15 @@
                 const el = document.getElementById('parcelas-list');
                 if (!el) return;
                 let html = '';
-                data.parcelas.forEach((p, i) => {
+                data.parcelas.forEach((p) => {
                     const totalParcelas = p.numParcelas || 1;
                     const pagas = (p.parcelasPagas || []).length;
                     const progresso = Math.round((pagas / totalParcelas) * 100);
                     html += `
                         <div class="card" style="margin-bottom:8px;padding:12px;background:var(--bg);">
                             <div class="flex-between">
-                                <div><strong>${p.descricao || 'Sem descrição'}</strong></div>
-                                <div style="font-size:13px;color:var(--text-secondary);">${p.formaPagamento || ''}</div>
+                                <div><strong>${escapeHtml(p.descricao || 'Sem descrição')}</strong></div>
+                                <div style="font-size:13px;color:var(--text-secondary);">${escapeHtml(p.formaPagamento || '')}</div>
                             </div>
                             <div class="flex-between" style="font-size:13px;margin-top:4px;">
                                 <span>${fmt(p.valorTotal)} · ${p.numParcelas}x ${fmt(p.valorParcela)}</span>
@@ -1523,13 +1288,13 @@
                             </div>
                             <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
                                 <span style="font-size:12px;color:var(--text-secondary);">Parcelas pagas:</span>
-                                ${Array.from({length: totalParcelas}, (_, idx) => {
+                                ${Array.from({ length: totalParcelas }, (_, idx) => {
                                     const isPaga = (p.parcelasPagas || []).includes(idx);
-                                    return `<button class="parcela-check" data-id="${p.id}" data-idx="${idx}" 
+                                    return `<button class="parcela-check" data-id="${p.id}" data-idx="${idx}"
                                             style="width:30px;height:30px;border-radius:50%;border:2px solid ${isPaga ? 'var(--success)' : 'var(--border)'};
                                             background:${isPaga ? 'var(--success)' : 'transparent'};
                                             color:${isPaga ? '#fff' : 'var(--text-secondary)'};
-                                            font-size:12px;font-weight:600;">${idx+1}</button>`;
+                                            font-size:12px;font-weight:600;">${idx + 1}</button>`;
                                 }).join('')}
                             </div>
                             <div class="progress-bar" style="margin-top:4px;">
@@ -1547,7 +1312,6 @@
                 });
                 el.innerHTML = html || '<div class="empty-state"><div class="icon">🛒</div>Nenhuma compra parcelada.</div>';
 
-                // Eventos: check de parcela
                 el.querySelectorAll('.parcela-check').forEach(btn => {
                     btn.addEventListener('click', function() {
                         const id = this.dataset.id;
@@ -1557,14 +1321,9 @@
                         if (!p.parcelasPagas) p.parcelasPagas = [];
                         const antes = [...p.parcelasPagas];
                         const i = p.parcelasPagas.indexOf(idx);
-                        if (i === -1) {
-                            p.parcelasPagas.push(idx);
-                        } else {
-                            p.parcelasPagas.splice(i, 1);
-                        }
-                        pushUndo('Alterou parcela ' + (idx + 1) + ' de ' + p.descricao, { parcelasPagas: antes },
-                            { parcelasPagas: [...p.parcelasPagas] });
-                        saveData();
+                        if (i === -1) p.parcelasPagas.push(idx);
+                        else p.parcelasPagas.splice(i, 1);
+                        pushUndo('Alterou parcela ' + (idx + 1) + ' de ' + p.descricao, { parcelasPagas: antes }, { parcelasPagas: [...p.parcelasPagas] });
                         renderAll();
                     });
                 });
@@ -1573,24 +1332,21 @@
                         const id = this.dataset.id;
                         const p = data.parcelas.find(x => x.id === id);
                         if (!p) return;
-                        // Form simples via prompt
                         const desc = prompt('Descrição:', p.descricao) || p.descricao;
                         const total = prompt('Valor total:', p.valorTotal) || p.valorTotal;
                         const num = prompt('Nº parcelas:', p.numParcelas) || p.numParcelas;
                         const mes = prompt('Mês início (1-12):', p.mesInicio) || p.mesInicio;
                         const ano = prompt('Ano início:', p.anoInicio) || p.anoInicio;
-                        const forma = prompt('Forma (cartaoBTG/cartaoInter/cartaoNubank/boleto):', p.formaPagamento) || p
-                            .formaPagamento;
+                        const forma = prompt('Forma (cartaoBTG/cartaoInter/cartaoNubank/boleto):', p.formaPagamento) || p.formaPagamento;
                         const antes = { ...p };
-                        p.descricao = desc.trim();
+                        p.descricao = String(desc).trim();
                         p.valorTotal = parseFloat(total) || 0;
                         p.numParcelas = parseInt(num) || 1;
                         p.valorParcela = p.valorTotal / p.numParcelas;
                         p.mesInicio = parseInt(mes) || 1;
                         p.anoInicio = parseInt(ano) || 2024;
-                        p.formaPagamento = forma.trim();
+                        p.formaPagamento = String(forma).trim();
                         pushUndo('Editou compra parcelada "' + antes.descricao + '"', { ...antes }, { ...p });
-                        saveData();
                         renderAll();
                     });
                 });
@@ -1602,9 +1358,7 @@
                         if (!confirm('Excluir "' + p.descricao + '"?')) return;
                         const antes = data.parcelas.map(x => ({ ...x }));
                         data.parcelas = data.parcelas.filter(x => x.id !== id);
-                        pushUndo('Excluiu compra "' + p.descricao + '"', { parcelas: antes }, { parcelas: data
-                                .parcelas.map(x => ({ ...x })) });
-                        saveData();
+                        pushUndo('Excluiu compra "' + p.descricao + '"', { parcelas: antes }, { parcelas: data.parcelas.map(x => ({ ...x })) });
                         renderAll();
                     });
                 });
@@ -1617,10 +1371,8 @@
                     el.innerHTML = '<div class="text-muted" style="font-size:13px;">Nenhuma parcela para exibir.</div>';
                     return;
                 }
-                // Mapeia parcelas por mês/ano
                 const mapa = {};
                 const anoAtual = new Date().getFullYear();
-                const anos = new Set();
                 data.parcelas.forEach(p => {
                     let mes = p.mesInicio || 1;
                     let ano = p.anoInicio || anoAtual;
@@ -1629,10 +1381,8 @@
                         const key = getMesAnoFromDate(ano, mes);
                         if (!mapa[key]) mapa[key] = 0;
                         mapa[key] += p.valorParcela || 0;
-                        anos.add(ano);
                         mes++;
-                        if (mes > 12) { mes = 1;
-                            ano++; }
+                        if (mes > 12) { mes = 1; ano++; }
                     }
                 });
 
@@ -1641,8 +1391,7 @@
                     el.innerHTML = '<div class="text-muted">Nenhuma parcela programada.</div>';
                     return;
                 }
-                let html =
-                    '<div class="scroll-table"><table><thead><tr><th>Mês</th><th>Total Parcelas</th></tr></thead><tbody>';
+                let html = '<div class="scroll-table"><table><thead><tr><th>Mês</th><th>Total Parcelas</th></tr></thead><tbody>';
                 for (const key of sorted) {
                     html += `<tr><td>${getMonthName(key)}</td><td class="num">${fmt(mapa[key])}</td></tr>`;
                 }
@@ -1655,15 +1404,13 @@
                 const el = document.getElementById('faturas-list');
                 if (!el) return;
                 let html = '';
-                data.faturas.forEach((f, i) => {
+                data.faturas.forEach((f) => {
                     html += `
                         <div class="list-item" data-id="${f.id}">
-                            <div class="info">
-                                <div class="name">${f.nome}</div>
-                            </div>
+                            <div class="info"><div class="name">${escapeHtml(f.nome)}</div></div>
                             <div style="display:flex;align-items:center;gap:6px;">
-                                <input type="number" step="0.01" value="${f.valor}" 
-                                       class="fatura-valor-input" data-id="${f.id}" 
+                                <input type="number" step="0.01" value="${f.valor}"
+                                       class="fatura-valor-input" data-id="${f.id}"
                                        style="width:100px;padding:6px 8px;background:var(--bg);border-radius:8px;text-align:right;font-size:14px;"/>
                                 <div class="actions">
                                     <button class="fatura-rename" data-id="${f.id}" title="Renomear">✏️</button>
@@ -1683,9 +1430,7 @@
                         if (f) {
                             const antes = f.valor;
                             f.valor = val;
-                            pushUndo('Alterou fatura ' + f.nome + ' para ' + fmt(val), { valor: antes },
-                            { valor: val });
-                            saveData();
+                            pushUndo('Alterou fatura ' + f.nome + ' para ' + fmt(val), { valor: antes }, { valor: val });
                             renderAll();
                         }
                     });
@@ -1700,7 +1445,6 @@
                             const antes = f.nome;
                             f.nome = novo.trim();
                             pushUndo('Renomeou fatura "' + antes + '"', { nome: antes }, { nome: f.nome });
-                            saveData();
                             renderAll();
                         }
                     });
@@ -1713,9 +1457,7 @@
                         if (!confirm('Excluir fatura "' + f.nome + '"?')) return;
                         const antes = data.faturas.map(x => ({ ...x }));
                         data.faturas = data.faturas.filter(x => x.id !== id);
-                        pushUndo('Excluiu fatura "' + f.nome + '"', { faturas: antes }, { faturas: data
-                                .faturas.map(x => ({ ...x })) });
-                        saveData();
+                        pushUndo('Excluiu fatura "' + f.nome + '"', { faturas: antes }, { faturas: data.faturas.map(x => ({ ...x })) });
                         renderAll();
                     });
                 });
@@ -1726,12 +1468,12 @@
                 const el = document.getElementById('caixinhas-list');
                 if (!el) return;
                 let html = '';
-                data.caixinhas.forEach((cx, i) => {
+                data.caixinhas.forEach((cx) => {
                     const progresso = cx.meta > 0 ? Math.min(100, (cx.saldo / cx.meta) * 100) : 0;
                     html += `
                         <div class="card" style="margin-bottom:8px;padding:12px;background:var(--bg);">
                             <div class="flex-between">
-                                <div><strong>${cx.nome}</strong></div>
+                                <div><strong>${escapeHtml(cx.nome)}</strong></div>
                                 <div style="font-size:13px;color:var(--text-secondary);">${fmt(cx.saldo)} ${cx.meta > 0 ? '/ ' + fmt(cx.meta) : ''}</div>
                             </div>
                             ${cx.meta > 0 ? `<div class="progress-bar"><div class="fill ${progresso >= 100 ? 'green' : ''}" style="width:${progresso}%;"></div></div>` : ''}
@@ -1762,9 +1504,7 @@
                         cx.saldo += val;
                         if (!cx.historico) cx.historico = [];
                         cx.historico.push({ data: nowISO(), valor: val, tipo: 'deposito' });
-                        pushUndo('Depositou ' + fmt(val) + ' em "' + cx.nome + '"', { saldo: antes }, { saldo: cx
-                                .saldo });
-                        saveData();
+                        pushUndo('Depositou ' + fmt(val) + ' em "' + cx.nome + '"', { saldo: antes }, { saldo: cx.saldo });
                         renderAll();
                     });
                 });
@@ -1782,9 +1522,7 @@
                         cx.saldo -= val;
                         if (!cx.historico) cx.historico = [];
                         cx.historico.push({ data: nowISO(), valor: -val, tipo: 'retirada' });
-                        pushUndo('Retirou ' + fmt(val) + ' de "' + cx.nome + '"', { saldo: antes }, { saldo: cx
-                                .saldo });
-                        saveData();
+                        pushUndo('Retirou ' + fmt(val) + ' de "' + cx.nome + '"', { saldo: antes }, { saldo: cx.saldo });
                         renderAll();
                     });
                 });
@@ -1798,7 +1536,6 @@
                             const antes = cx.nome;
                             cx.nome = novo.trim();
                             pushUndo('Renomeou caixinha "' + antes + '"', { nome: antes }, { nome: cx.nome });
-                            saveData();
                             renderAll();
                         }
                     });
@@ -1811,9 +1548,7 @@
                         if (!confirm('Excluir "' + cx.nome + '"?')) return;
                         const antes = data.caixinhas.map(x => ({ ...x }));
                         data.caixinhas = data.caixinhas.filter(x => x.id !== id);
-                        pushUndo('Excluiu caixinha "' + cx.nome + '"', { caixinhas: antes }, { caixinhas: data
-                                .caixinhas.map(x => ({ ...x })) });
-                        saveData();
+                        pushUndo('Excluiu caixinha "' + cx.nome + '"', { caixinhas: antes }, { caixinhas: data.caixinhas.map(x => ({ ...x })) });
                         renderAll();
                     });
                 });
@@ -1824,7 +1559,6 @@
                 const el = document.getElementById('dashboard-resumo');
                 if (!el) return;
 
-                // Resumo atual
                 const totalContas = data.contas.reduce((s, c) => s + c.saldo, 0);
                 const totalCF = data.contasFixas.reduce((s, c) => s + c.valor, 0);
                 const cfPagas = data.contasFixas.filter(c => c.pago).reduce((s, c) => s + c.valor, 0);
@@ -1837,7 +1571,7 @@
                 const totalFaturas = data.faturas.reduce((s, f) => s + f.valor, 0);
                 const totalCaixinhas = data.caixinhas.reduce((s, c) => s + c.saldo, 0);
 
-                let html = `
+                el.innerHTML = `
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                         <div style="background:var(--bg);padding:10px;border-radius:10px;text-align:center;">
                             <div style="font-size:11px;color:var(--text-secondary);">Receita</div>
@@ -1866,24 +1600,25 @@
                         </div>
                     </div>
                 `;
-                el.innerHTML = html;
 
-                // Evolução - usando histórico mensal de contas fixas + receita
                 const evolEl = document.getElementById('dashboard-evolucao');
-                const keys = Object.keys(data.historicoMensalCF || {}).sort().slice(-12);
+                const keys = Object.keys(data.historicoMensalGeral || {}).sort().slice(-12);
                 if (keys.length === 0) {
-                    evolEl.innerHTML = '<div class="text-muted" style="font-size:13px;">Sem dados históricos suficientes.</div>';
+                    evolEl.innerHTML = '<div class="text-muted" style="font-size:13px;">Sem dados históricos suficientes ainda — a evolução aparece a partir do 2º mês de uso do app.</div>';
                     return;
                 }
-                let evolHtml =
-                    '<div class="scroll-table"><table><thead><tr><th>Mês</th><th>Contas Fixas</th><th>Pagas</th><th>%</th></tr></thead><tbody>';
+                let evolHtml = '<div class="scroll-table"><table><thead><tr><th>Mês</th><th>Receita</th><th>Saldos</th><th>Fixas pagas</th><th>Faturas</th><th>Caixinhas</th></tr></thead><tbody>';
                 for (const key of keys) {
-                    const items = data.historicoMensalCF[key] || [];
-                    const total = items.reduce((s, i) => s + i.valor, 0);
-                    const pagas = items.filter(i => i.pago).reduce((s, i) => s + i.valor, 0);
-                    const pct = total > 0 ? Math.round((pagas / total) * 100) : 0;
-                    evolHtml +=
-                        `<tr><td>${getMonthName(key)}</td><td class="num">${fmt(total)}</td><td class="num">${fmt(pagas)}</td><td class="num">${pct}%</td></tr>`;
+                    const g = data.historicoMensalGeral[key];
+                    const tagIncompleto = g.completo === false ? ' <span class="tag warn">sem dado</span>' : '';
+                    evolHtml += `<tr>
+                        <td>${getMonthName(key)}${tagIncompleto}</td>
+                        <td class="num">${g.receita === null ? '—' : fmt(g.receita)}</td>
+                        <td class="num">${g.totalSaldos === null ? '—' : fmt(g.totalSaldos)}</td>
+                        <td class="num">${fmt(g.totalContasFixasPagas)} / ${fmt(g.totalContasFixas)}</td>
+                        <td class="num">${g.totalFaturas === null ? '—' : fmt(g.totalFaturas)}</td>
+                        <td class="num">${g.totalCaixinhas === null ? '—' : fmt(g.totalCaixinhas)}</td>
+                    </tr>`;
                 }
                 evolHtml += '</tbody></table></div>';
                 evolEl.innerHTML = evolHtml;
@@ -1898,65 +1633,51 @@
                 let saldo = 0;
                 let detalhes = [];
 
-                // Receita
                 if (data.disponivelConfig.incluirReceita !== false) {
                     saldo += data.receitaMes || 0;
-                    detalhes.push({ label: 'Receita', valor: data.receitaMes || 0, cor: 'green' });
+                    detalhes.push({ label: 'Receita', valor: data.receitaMes || 0 });
                 }
 
-                // Contas Fixas
                 if (data.disponivelConfig.incluirContasFixas !== false) {
                     let totalCF = 0;
                     data.contasFixas.forEach(cf => {
-                        if (!data.disponivelConfig.excluirContaFixa[cf.id]) {
-                            totalCF += cf.valor;
-                        }
+                        if (!data.disponivelConfig.excluirContaFixa[cf.id]) totalCF += cf.valor;
                     });
                     saldo -= totalCF;
-                    detalhes.push({ label: 'Contas Fixas', valor: -totalCF, cor: 'red' });
+                    detalhes.push({ label: 'Contas Fixas', valor: -totalCF });
                 }
 
-                // Faturas
                 if (data.disponivelConfig.incluirFaturas !== false) {
                     let totalFat = 0;
                     data.faturas.forEach(f => {
-                        if (!data.disponivelConfig.excluirFatura[f.id]) {
-                            totalFat += f.valor;
-                        }
+                        if (!data.disponivelConfig.excluirFatura[f.id]) totalFat += f.valor;
                     });
                     saldo -= totalFat;
-                    detalhes.push({ label: 'Faturas Cartão', valor: -totalFat, cor: 'red' });
+                    detalhes.push({ label: 'Faturas Cartão (já inclui parcelas do cartão)', valor: -totalFat });
                 }
 
-                // Parcelas (apenas boleto/carnê)
                 if (data.disponivelConfig.incluirParcelasBoleto !== false) {
                     let totalParc = 0;
                     const mesAtual = getCurrentMonthKey();
                     data.parcelas.forEach(p => {
                         if (data.disponivelConfig.excluirParcela[p.id]) return;
                         const forma = (p.formaPagamento || '').toLowerCase();
-                        if (forma === 'boleto' || forma === 'boleto-carnê' || forma === 'boletocarnê' || forma ===
-                            'carnê') {
-                            // Verifica se tem parcela no mês atual
-                            let mes = p.mesInicio || 1;
-                            let ano = p.anoInicio || new Date().getFullYear();
-                            const total = p.numParcelas || 1;
-                            for (let i = 0; i < total; i++) {
-                                const key = getMesAnoFromDate(ano, mes);
-                                if (key === mesAtual) {
-                                    totalParc += p.valorParcela || 0;
-                                }
-                                mes++;
-                                if (mes > 12) { mes = 1;
-                                    ano++; }
-                            }
+                        const ehBoleto = forma.indexOf('boleto') !== -1 || forma.indexOf('carn') !== -1;
+                        if (!ehBoleto) return; // parcelas em cartão já estão na fatura — não soma de novo
+                        let mes = p.mesInicio || 1;
+                        let ano = p.anoInicio || new Date().getFullYear();
+                        const total = p.numParcelas || 1;
+                        for (let i = 0; i < total; i++) {
+                            const key = getMesAnoFromDate(ano, mes);
+                            if (key === mesAtual) totalParc += p.valorParcela || 0;
+                            mes++;
+                            if (mes > 12) { mes = 1; ano++; }
                         }
                     });
                     saldo -= totalParc;
-                    detalhes.push({ label: 'Parcelas (boleto/carnê)', valor: -totalParc, cor: 'red' });
+                    detalhes.push({ label: 'Parcelas do mês (boleto/carnê, fora do cartão)', valor: -totalParc });
                 }
 
-                // Exibe detalhes
                 let html = '';
                 for (const d of detalhes) {
                     const cor = d.valor >= 0 ? 'var(--success)' : 'var(--danger)';
@@ -1967,50 +1688,41 @@
                         </div>
                     `;
                 }
-                html +=
-                    `<div class="flex-between" style="padding-top:8px;font-weight:600;font-size:16px;border-top:2px solid var(--border);">
+                html += `<div class="flex-between" style="padding-top:8px;font-weight:600;font-size:16px;border-top:2px solid var(--border);">
                         <span>Saldo Disponível</span>
                         <span style="color:${saldo >= 0 ? 'var(--success)' : 'var(--danger)'};">${fmt(saldo)}</span>
                     </div>`;
                 el.innerHTML = html || '<div class="text-muted">Nenhum dado para calcular.</div>';
                 if (totalEl) totalEl.textContent = fmt(saldo);
 
-                // Opções de inclusão
                 if (opcoesEl) {
-                    let optsHtml = `
+                    opcoesEl.innerHTML = `
                         <div class="toggle-wrap" style="margin-bottom:6px;">
-                            <div class="toggle-track ${data.disponivelConfig.incluirReceita !== false ? 'on' : ''}" 
-                                 data-key="incluirReceita"></div>
+                            <div class="toggle-track ${data.disponivelConfig.incluirReceita !== false ? 'on' : ''}" data-key="incluirReceita"></div>
                             <span>Incluir Receita</span>
                         </div>
                         <div class="toggle-wrap" style="margin-bottom:6px;">
-                            <div class="toggle-track ${data.disponivelConfig.incluirContasFixas !== false ? 'on' : ''}" 
-                                 data-key="incluirContasFixas"></div>
+                            <div class="toggle-track ${data.disponivelConfig.incluirContasFixas !== false ? 'on' : ''}" data-key="incluirContasFixas"></div>
                             <span>Incluir Contas Fixas</span>
                         </div>
                         <div class="toggle-wrap" style="margin-bottom:6px;">
-                            <div class="toggle-track ${data.disponivelConfig.incluirFaturas !== false ? 'on' : ''}" 
-                                 data-key="incluirFaturas"></div>
+                            <div class="toggle-track ${data.disponivelConfig.incluirFaturas !== false ? 'on' : ''}" data-key="incluirFaturas"></div>
                             <span>Incluir Faturas</span>
                         </div>
                         <div class="toggle-wrap" style="margin-bottom:6px;">
-                            <div class="toggle-track ${data.disponivelConfig.incluirParcelasBoleto !== false ? 'on' : ''}" 
-                                 data-key="incluirParcelasBoleto"></div>
+                            <div class="toggle-track ${data.disponivelConfig.incluirParcelasBoleto !== false ? 'on' : ''}" data-key="incluirParcelasBoleto"></div>
                             <span>Incluir Parcelas (boleto/carnê)</span>
                         </div>
                         <div class="text-muted" style="font-size:12px;margin-top:8px;">
-                            💡 Clique nos botões para ligar/desligar cada item. 
-                            Itens desligados são excluídos do cálculo.
+                            💡 Parcelas pagas em cartão (BTG/Inter/Nubank) não têm toggle aqui de propósito —
+                            elas já estão dentro do valor da fatura, então somar de novo duplicaria o gasto.
                         </div>
                     `;
-                    opcoesEl.innerHTML = optsHtml;
-
                     opcoesEl.querySelectorAll('.toggle-track').forEach(t => {
                         t.addEventListener('click', function() {
                             const key = this.dataset.key;
                             const current = data.disponivelConfig[key];
                             data.disponivelConfig[key] = current === false ? true : false;
-                            this.classList.toggle('on');
                             saveData();
                             renderSaldoDisponivel();
                         });
@@ -2032,19 +1744,24 @@
                     html += `
                         <div class="history-item">
                             <span class="h-time">${fmtDate(h.timestamp)}</span>
-                            <span class="h-action">${h.tipo || 'ação'}</span>
-                            <span class="h-desc">${h.desc || ''}</span>
+                            <span class="h-desc">${escapeHtml(h.desc || '')}</span>
                         </div>
                     `;
                 }
                 el.innerHTML = html;
             }
 
+            function escapeHtml(s) {
+                return String(s == null ? '' : s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
             // --------------------------------------------------------------
             // 8. EVENTOS DE UI
             // --------------------------------------------------------------
-
-            // Tabs
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const tab = parseInt(this.dataset.tab);
@@ -2054,34 +1771,28 @@
                     this.classList.add('active');
                     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
                     document.querySelector(`.tab-panel[data-tab="${tab}"]`).classList.add('active');
-                    // Re-render ao mudar de tab
                     renderAll();
                 });
             });
 
-            // Receita
             document.getElementById('receita-mes')?.addEventListener('change', function() {
                 const val = parseFloat(this.value) || 0;
                 const antes = data.receitaMes;
                 data.receitaMes = val;
                 pushUndo('Alterou receita para ' + fmt(val), { receitaMes: antes }, { receitaMes: val });
-                saveData();
                 renderAll();
             });
 
-            // Adicionar conta
             document.getElementById('add-conta-btn')?.addEventListener('click', function() {
                 const nome = prompt('Nome da nova conta:');
                 if (nome && nome.trim()) {
                     const nova = { id: genId(), nome: nome.trim(), saldo: 0 };
                     data.contas.push(nova);
                     pushUndo('Adicionou conta "' + nova.nome + '"', null, { conta: nova });
-                    saveData();
                     renderAll();
                 }
             });
 
-            // Adicionar conta fixa
             document.getElementById('add-conta-fixa-btn')?.addEventListener('click', function() {
                 const nome = prompt('Nome da conta fixa:');
                 if (!nome || !nome.trim()) return;
@@ -2090,11 +1801,9 @@
                 const nova = { id: genId(), nome: nome.trim(), valor: val, pago: false };
                 data.contasFixas.push(nova);
                 pushUndo('Adicionou conta fixa "' + nova.nome + '"', null, { conta: nova });
-                saveData();
                 renderAll();
             });
 
-            // Adicionar parcela
             document.getElementById('add-parcela-btn')?.addEventListener('click', function() {
                 const desc = prompt('Descrição da compra:');
                 if (!desc || !desc.trim()) return;
@@ -2115,16 +1824,14 @@
                     valorParcela: valTotal / numParc,
                     mesInicio: mesIni,
                     anoInicio: anoIni,
-                    formaPagamento: forma.trim() || 'boleto',
+                    formaPagamento: (forma || 'boleto').trim(),
                     parcelasPagas: []
                 };
                 data.parcelas.push(nova);
                 pushUndo('Adicionou compra "' + nova.descricao + '"', null, { parcela: nova });
-                saveData();
                 renderAll();
             });
 
-            // Adicionar fatura
             document.getElementById('add-fatura-btn')?.addEventListener('click', function() {
                 const nome = prompt('Nome do cartão:');
                 if (!nome || !nome.trim()) return;
@@ -2133,11 +1840,9 @@
                 const nova = { id: genId(), nome: nome.trim(), valor: val };
                 data.faturas.push(nova);
                 pushUndo('Adicionou fatura "' + nova.nome + '"', null, { fatura: nova });
-                saveData();
                 renderAll();
             });
 
-            // Adicionar caixinha
             document.getElementById('add-caixinha-btn')?.addEventListener('click', function() {
                 const nome = prompt('Nome da caixinha:');
                 if (!nome || !nome.trim()) return;
@@ -2146,11 +1851,9 @@
                 const nova = { id: genId(), nome: nome.trim(), meta: metaVal, saldo: 0, historico: [] };
                 data.caixinhas.push(nova);
                 pushUndo('Adicionou caixinha "' + nova.nome + '"', null, { caixinha: nova });
-                saveData();
                 renderAll();
             });
 
-            // History modal
             document.getElementById('btn-history')?.addEventListener('click', function() {
                 document.getElementById('modal-history').classList.add('open');
                 renderHistory();
@@ -2159,29 +1862,26 @@
                 if (e.target === this) this.classList.remove('open');
             });
 
-            // Config modal
             document.getElementById('btn-config')?.addEventListener('click', function() {
                 document.getElementById('modal-config').classList.add('open');
                 document.getElementById('config-sheets-url').value = data.googleSheetsUrl || '';
                 document.getElementById('config-sheets-token').value = data.googleSheetsToken || '';
-                updateSyncStatus(data.syncQueue.length > 0 ? '⏳ ' + data.syncQueue.length + ' pendentes' :
-                    '✅ Sincronizado');
+                updateSyncStatus(data.syncQueue.length > 0 ? '⏳ ' + data.syncQueue.length + ' pendentes' : '✅ Sincronizado');
             });
             document.getElementById('modal-config')?.addEventListener('click', function(e) {
                 if (e.target === this) this.classList.remove('open');
             });
 
-            // Config save
             document.getElementById('config-save-btn')?.addEventListener('click', function() {
                 data.googleSheetsUrl = document.getElementById('config-sheets-url').value.trim();
                 data.googleSheetsToken = document.getElementById('config-sheets-token').value.trim();
                 saveData();
                 toast('Configurações salvas!');
+                enqueueSyncEstado();
                 processSyncQueue();
                 document.getElementById('modal-config').classList.remove('open');
             });
 
-            // Export
             document.getElementById('config-export-btn')?.addEventListener('click', function() {
                 const json = JSON.stringify(data, null, 2);
                 const blob = new Blob([json], { type: 'application/json' });
@@ -2194,40 +1894,26 @@
                 toast('📤 Backup exportado!');
             });
 
-            // Import
             document.getElementById('config-import-btn')?.addEventListener('click', function() {
                 document.getElementById('import-file-input').click();
             });
-            document.getElementById('import-file-input')?.addEventListener('change', function(e) {
+            document.getElementById('import-file-input')?.addEventListener('change', function() {
                 const file = this.files[0];
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = function(ev) {
                     try {
                         const imported = JSON.parse(ev.target.result);
-                        if (typeof imported !== 'object') throw new Error('Inválido');
-                        if (!confirm('Isso irá substituir TODOS os dados atuais. Continuar?')) return;
-                        // Preserva algumas configs
+                        if (typeof imported !== 'object') throw new Error('Arquivo inválido');
+                        if (!confirm('Isso vai substituir TODOS os dados atuais. Continuar?')) return;
                         const urlBackup = data.googleSheetsUrl;
                         const tokenBackup = data.googleSheetsToken;
                         const queueBackup = data.syncQueue;
-                        Object.assign(data, imported);
+                        Object.keys(data).forEach(k => delete data[k]);
+                        Object.assign(data, defaultData(), imported);
                         data.googleSheetsUrl = urlBackup;
                         data.googleSheetsToken = tokenBackup;
                         data.syncQueue = queueBackup;
-                        if (!data.historicoMensalCF) data.historicoMensalCF = {};
-                        if (!data.historicoAcoes) data.historicoAcoes = [];
-                        if (!data.disponivelConfig) {
-                            data.disponivelConfig = {
-                                incluirReceita: true,
-                                incluirContasFixas: true,
-                                incluirFaturas: true,
-                                incluirParcelasBoleto: true,
-                                excluirContaFixa: {},
-                                excluirFatura: {},
-                                excluirParcela: {}
-                            };
-                        }
                         saveData();
                         renderAll();
                         toast('📥 Dados importados com sucesso!');
@@ -2239,63 +1925,45 @@
                 this.value = '';
             });
 
-            // Force sync
             document.getElementById('config-force-sync-btn')?.addEventListener('click', function() {
+                enqueueSyncEstado();
                 processSyncQueue();
                 toast('🔄 Sincronizando...');
             });
 
-            // Undo
             document.getElementById('undo-btn')?.addEventListener('click', undo);
-
-            // Clear history
             document.getElementById('clear-history-btn')?.addEventListener('click', clearHistory);
 
             // --------------------------------------------------------------
             // 9. TOAST
             // --------------------------------------------------------------
             let toastTimer = null;
-
             function toast(msg) {
                 const el = document.getElementById('toast');
                 if (!el) return;
                 el.textContent = msg;
                 el.classList.add('show');
                 clearTimeout(toastTimer);
-                toastTimer = setTimeout(() => {
-                    el.classList.remove('show');
-                }, 3000);
+                toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
             }
 
             // --------------------------------------------------------------
             // 10. INIT
             // --------------------------------------------------------------
             function init() {
-                // Verifica reset mensal
                 verificarResetMensal();
-                reconstruirMesesPassados();
-
-                // Renderiza tudo
                 renderAll();
-
-                // Processa fila de sync
                 setTimeout(processSyncQueue, 1000);
-
-                // Sincroniza periodicamente
                 setInterval(processSyncQueue, 30000);
-
-                console.log('💰 Finanças PWA carregado!');
-                console.log('Dados:', data);
+                console.log('💰 Finanças PWA carregado (revisão 2).');
             }
 
-            // Export para debug
-            window.__data = data;
+            window.__data = data; // só para debug no console
 
-            // Inicia
             init();
 
             // --------------------------------------------------------------
-            // 11. SERVICE WORKER REGISTRATION
+            // 11. SERVICE WORKER
             // --------------------------------------------------------------
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('sw.js')
