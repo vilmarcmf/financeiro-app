@@ -107,13 +107,13 @@
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             z-index: 10;
-            padding-bottom: var(--safe-bottom);
+            padding-bottom: max(var(--safe-bottom), 8px);
         }
         #tab-bar::-webkit-scrollbar { display: none; }
         .tab-btn {
-            flex: 0 0 auto;
-            padding: 0 12px;
-            min-width: 56px;
+            flex: 1 1 0;
+            padding: 0 8px;
+            min-width: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -133,6 +133,7 @@
 
         #content {
             flex: 1;
+            min-height: 0;
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
