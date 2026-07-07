@@ -97,23 +97,16 @@
         #header-actions button:active { background: rgba(255, 255, 255, 0.3); }
 
         #tab-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            max-width: 480px;
-            margin: 0 auto;
             flex-shrink: 0;
             height: var(--tab-height);
             background: var(--card);
-            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
             display: flex;
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             z-index: 10;
-            padding-bottom: max(var(--safe-bottom), 8px);
         }
         #tab-bar::-webkit-scrollbar { display: none; }
         .tab-btn {
@@ -143,7 +136,7 @@
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
-            padding: 12px 12px calc(var(--tab-height) + 16px);
+            padding: 12px 12px calc(var(--safe-bottom) + 16px);
             background: var(--bg);
         }
         .tab-panel { display: none; animation: fadeUp 0.25s ease; }
@@ -492,6 +485,16 @@
             </div>
         </header>
 
+        <!-- TAB BAR -->
+        <nav id="tab-bar">
+            <button class="tab-btn active" data-tab="0"><span class="tab-icon">💰</span> Saldos</button>
+            <button class="tab-btn" data-tab="1"><span class="tab-icon">📋</span> Fixas</button>
+            <button class="tab-btn" data-tab="2"><span class="tab-icon">🛒</span> Parcelas</button>
+            <button class="tab-btn" data-tab="3"><span class="tab-icon">💳</span> Faturas</button>
+            <button class="tab-btn" data-tab="4"><span class="tab-icon">🐷</span> Caixinhas</button>
+            <button class="tab-btn" data-tab="5"><span class="tab-icon">📊</span> Dashboard</button>
+        </nav>
+
         <!-- CONTENT -->
         <div id="content">
             <!-- ===== TAB 1: RECEITA E SALDOS ===== -->
@@ -589,16 +592,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- TAB BAR -->
-        <nav id="tab-bar">
-            <button class="tab-btn active" data-tab="0"><span class="tab-icon">💰</span> Saldos</button>
-            <button class="tab-btn" data-tab="1"><span class="tab-icon">📋</span> Fixas</button>
-            <button class="tab-btn" data-tab="2"><span class="tab-icon">🛒</span> Parcelas</button>
-            <button class="tab-btn" data-tab="3"><span class="tab-icon">💳</span> Faturas</button>
-            <button class="tab-btn" data-tab="4"><span class="tab-icon">🐷</span> Caixinhas</button>
-            <button class="tab-btn" data-tab="5"><span class="tab-icon">📊</span> Dashboard</button>
-        </nav>
     </div>
 
     <!-- ===== MODAL: HISTÓRICO ===== -->
