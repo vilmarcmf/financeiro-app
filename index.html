@@ -10,7 +10,6 @@
     <link rel="apple-touch-icon" href="icon-192.png" />
     <title>Minhas Finanças</title>
     <style>
-        /* ===== RESET & BASE ===== */
         * {
             margin: 0;
             padding: 0;
@@ -33,10 +32,12 @@
             --tab-height: 64px;
             --header-height: 56px;
             --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-top: env(safe-area-inset-top, 0px);
+            --vh-real: 100vh;
         }
         html, body {
             height: 100%;
-            min-height: -webkit-fill-available;
+            height: -webkit-fill-available;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background: var(--bg);
             color: var(--text);
@@ -56,16 +57,18 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
 
-        /* ===== LAYOUT ===== */
         #app {
             display: flex;
             flex-direction: column;
-            height: 100%;
+            height: 100vh;
+            height: var(--vh-real);
+            height: -webkit-fill-available;
             max-width: 480px;
             margin: 0 auto;
             background: var(--bg);
             position: relative;
             overflow: hidden;
+            padding-top: var(--safe-top);
         }
         #header {
             flex-shrink: 0;
@@ -95,7 +98,6 @@
         }
         #header-actions button:active { background: rgba(255, 255, 255, 0.3); }
 
-        /* ===== TABS ===== */
         #tab-bar {
             flex-shrink: 0;
             height: var(--tab-height);
@@ -131,7 +133,6 @@
         .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
         .tab-btn:active { opacity: 0.6; }
 
-        /* ===== CONTENT ===== */
         #content {
             flex: 1;
             overflow-y: auto;
@@ -147,7 +148,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* ===== CARDS ===== */
         .card {
             background: var(--card);
             border-radius: var(--radius);
@@ -172,7 +172,6 @@
             border-radius: 20px;
         }
 
-        /* ===== FORM ELEMENTS ===== */
         .input-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
         .input-group label {
             font-size: 12px;
@@ -222,7 +221,6 @@
         .btn-block { width: 100%; justify-content: center; }
         .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
 
-        /* ===== LIST ITEMS ===== */
         .list-item {
             display: flex;
             align-items: center;
@@ -282,7 +280,6 @@
         }
         .list-item .check.checked { background: var(--success); border-color: var(--success); color: #fff; }
 
-        /* ===== TOGGLE ===== */
         .toggle-wrap { display: flex; align-items: center; gap: 10px; cursor: pointer; }
         .toggle-track {
             width: 44px;
@@ -308,7 +305,6 @@
         .toggle-track.on { background: var(--primary); }
         .toggle-track.on::after { transform: translateX(18px); }
 
-        /* ===== MODAL / OVERLAY ===== */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -337,7 +333,6 @@
         .modal-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto 16px; }
         .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
 
-        /* ===== HISTORY ===== */
         .history-item {
             font-size: 13px;
             padding: 6px 0;
@@ -349,7 +344,6 @@
         .history-item .h-time { color: var(--text-secondary); font-size: 11px; white-space: nowrap; min-width: 60px; }
         .history-item .h-desc { flex: 1; word-break: break-word; }
 
-        /* ===== MISC ===== */
         .text-center { text-align: center; }
         .text-muted { color: var(--text-secondary); font-size: 13px; }
         .mt-8 { margin-top: 8px; }
@@ -374,7 +368,6 @@
         }
         .tag.warn { background: #fff4d6; color: #92700c; }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 400px) {
             .tab-btn { padding: 0 8px; min-width: 44px; font-size: 9px; }
             .tab-btn .tab-icon { font-size: 18px; }
@@ -384,7 +377,6 @@
             #app { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
         }
 
-        /* ===== TOAST ===== */
         .toast {
             position: fixed;
             bottom: 80px;
@@ -405,14 +397,12 @@
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* ===== PROGRESS BAR ===== */
         .progress-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-top: 4px; }
         .progress-bar .fill { height: 100%; border-radius: 3px; background: var(--primary); transition: width 0.3s; }
         .progress-bar .fill.green { background: var(--success); }
         .progress-bar .fill.red { background: var(--danger); }
         .progress-bar .fill.yellow { background: var(--warning); }
 
-        /* ===== SCROLLABLE TABLE ===== */
         .scroll-table { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; padding: 0 4px; }
         .scroll-table table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 300px; }
         .scroll-table th {
@@ -429,7 +419,6 @@
         .scroll-table tr:last-child td { border-bottom: none; }
         .scroll-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 
-        /* ===== CONFIG ===== */
         .config-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
         .config-row label { font-size: 13px; font-weight: 500; }
         .config-row input {
@@ -441,7 +430,6 @@
         }
         .config-row input:focus { border-color: var(--primary); background: #fff; }
 
-        /* ===== FATURAS PAGAS ===== */
         .fatura-paga-item {
             display: flex;
             align-items: center;
@@ -669,8 +657,10 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 6)
-        //  Adicionado: dia de vencimento em contas fixas
+        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 7)
+        //  Corrigido: NaN em Faturas no histórico mensal
+        //  Corrigido: dimensionamento em modo standalone no iOS
+        //  Adicionado: evolução mensal de contas e caixinhas (só na planilha)
         // ================================================================
 
         (function() {
@@ -693,9 +683,11 @@
                         { id: genId(), nome: 'INTER', saldo: 0 },
                         { id: genId(), nome: 'NUBANK', saldo: 0 }
                     ],
-                    contasFixas: [], // cada item: { id, nome, valor, pago, diaVencimento (1-31) }
+                    contasFixas: [],
                     historicoMensalCF: {},
                     historicoMensalGeral: {},
+                    historicoMensalContas: {},
+                    historicoMensalCaixinhas: {},
                     parcelas: [],
                     faturas: [
                         { id: genId(), nome: 'BTG' },
@@ -814,6 +806,8 @@
                         const d = JSON.parse(raw);
                         if (!d.historicoMensalCF) d.historicoMensalCF = {};
                         if (!d.historicoMensalGeral) d.historicoMensalGeral = {};
+                        if (!d.historicoMensalContas) d.historicoMensalContas = {};
+                        if (!d.historicoMensalCaixinhas) d.historicoMensalCaixinhas = {};
                         if (!d.historicoAcoes) d.historicoAcoes = [];
                         if (!d.undoStack) d.undoStack = [];
                         if (d.undoIndex === undefined) d.undoIndex = -1;
@@ -836,7 +830,6 @@
                         }
                         if (!d.syncQueue) d.syncQueue = [];
                         if (!d.ultimoMesVerificado) d.ultimoMesVerificado = '';
-                        // Garantir diaVencimento em contas fixas existentes
                         d.contasFixas.forEach(cf => {
                             if (cf.diaVencimento === undefined) cf.diaVencimento = 1;
                         });
@@ -969,7 +962,9 @@
                     faturas: data.faturas,
                     faturasPagas: data.faturasPagas,
                     caixinhas: data.caixinhas,
-                    historicoMensal: data.historicoMensalCF
+                    historicoMensal: data.historicoMensalCF,
+                    historicoMensalContas: data.historicoMensalContas,
+                    historicoMensalCaixinhas: data.historicoMensalCaixinhas
                 });
             }
 
@@ -1045,7 +1040,7 @@
             });
 
             // --------------------------------------------------------------
-            // 6. RESET / ARQUIVAMENTO MENSAL (Contas Fixas)
+            // 6. RESET / ARQUIVAMENTO MENSAL
             // --------------------------------------------------------------
             function verificarResetMensal() {
                 const current = getCurrentMonthKey();
@@ -1087,10 +1082,31 @@
                         diaVencimento: cf.diaVencimento || 1
                     }));
                 }
+
+                if (!data.historicoMensalContas[mesKey] && completo) {
+                    data.historicoMensalContas[mesKey] = data.contas.map(c => ({
+                        id: c.id,
+                        nome: c.nome,
+                        saldo: c.saldo
+                    }));
+                }
+
+                if (!data.historicoMensalCaixinhas[mesKey] && completo) {
+                    data.historicoMensalCaixinhas[mesKey] = data.caixinhas.map(cx => ({
+                        id: cx.id,
+                        nome: cx.nome,
+                        saldo: cx.saldo
+                    }));
+                }
+
                 if (!data.historicoMensalGeral[mesKey]) {
                     const totalCF = data.contasFixas.reduce((s, c) => s + c.valor, 0);
                     const pagasCF = completo ? data.contasFixas.filter(c => c.pago).reduce((s, c) => s + c.valor, 0) : 0;
-                    const totalFaturas = completo ? data.faturas.reduce((s, f) => s + f.valor, 0) : null;
+
+                    const totalFaturas = completo ? (data.faturasPagas || [])
+                        .filter(fp => getMesAnoFromDate(fp.ano, fp.mes) === mesKey)
+                        .reduce((s, fp) => s + fp.valor, 0) : null;
+
                     const totalParcelasRestantes = completo ? data.parcelas.reduce((s, p) => {
                         const total = p.numParcelas || 1;
                         const pagas = (p.parcelasPagas || []).length;
@@ -1251,7 +1267,6 @@
             function renderContasFixas() {
                 const el = document.getElementById('contas-fixas-list');
                 if (!el) return;
-                // Ordenar por dia de vencimento
                 const sorted = [...data.contasFixas].sort((a, b) => (a.diaVencimento || 1) - (b.diaVencimento || 1));
 
                 let html = '';
@@ -1282,7 +1297,6 @@
                 });
                 el.innerHTML = html || '<div class="empty-state"><div class="icon">📋</div>Nenhuma conta fixa cadastrada.</div>';
 
-                // Check
                 el.querySelectorAll('.check').forEach(el2 => {
                     el2.addEventListener('click', function() {
                         const id = this.dataset.id;
@@ -1295,7 +1309,6 @@
                     });
                 });
 
-                // Valor
                 el.querySelectorAll('.cf-valor-input').forEach(inp => {
                     inp.addEventListener('change', function() {
                         const id = this.dataset.id;
@@ -1310,7 +1323,6 @@
                     });
                 });
 
-                // Editar (nome, valor, dia)
                 el.querySelectorAll('.cf-edit').forEach(btn => {
                     btn.addEventListener('click', function() {
                         const id = this.dataset.id;
@@ -1366,7 +1378,6 @@
                     });
                 });
 
-                // Excluir
                 el.querySelectorAll('.cf-delete').forEach(btn => {
                     btn.addEventListener('click', function() {
                         const id = this.dataset.id;
@@ -2445,14 +2456,26 @@
             }
 
             // --------------------------------------------------------------
-            // 10. INIT
+            // 10. AJUSTE DE ALTURA REAL (iOS Safari standalone)
+            // --------------------------------------------------------------
+            function ajustarAlturaReal() {
+                document.documentElement.style.setProperty('--vh-real', window.innerHeight + 'px');
+            }
+            ajustarAlturaReal();
+            window.addEventListener('resize', ajustarAlturaReal);
+            window.addEventListener('orientationchange', function() {
+                setTimeout(ajustarAlturaReal, 100);
+            });
+
+            // --------------------------------------------------------------
+            // 11. INIT
             // --------------------------------------------------------------
             function init() {
                 verificarResetMensal();
                 renderAll();
                 setTimeout(processSyncQueue, 1000);
                 setInterval(processSyncQueue, 30000);
-                console.log('💰 Finanças PWA carregado (revisão 6) — com dia de vencimento.');
+                console.log('💰 Finanças PWA carregado (revisão 7) — NaN corrigido, viewport corrigido, evolução de contas/caixinhas ativa.');
             }
 
             window.__data = data;
@@ -2460,7 +2483,7 @@
             init();
 
             // --------------------------------------------------------------
-            // 11. SERVICE WORKER
+            // 12. SERVICE WORKER
             // --------------------------------------------------------------
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('sw.js')
