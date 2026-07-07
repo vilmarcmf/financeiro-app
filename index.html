@@ -233,7 +233,24 @@
         }
         .list-item:last-child { border-bottom: none; }
         .list-item .info { flex: 1; min-width: 0; }
-        .list-item .info .name { font-weight: 500; font-size: 14px; }
+        .list-item .info .name {
+            font-weight: 500;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .list-item .info .name .due-badge {
+            font-size: 10px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            background: var(--bg);
+            padding: 1px 8px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
         .list-item .info .sub { font-size: 12px; color: var(--text-secondary); }
         .list-item .value { font-weight: 600; font-size: 15px; white-space: nowrap; }
         .list-item .actions { display: flex; gap: 4px; flex-shrink: 0; }
@@ -511,7 +528,6 @@
                     </div>
                     <div class="text-muted mb-8">O check é só visual — marque quando você mesmo pagar. Ele zera automaticamente no início de cada mês (o mês anterior fica arquivado abaixo).</div>
                     <div id="contas-fixas-list"></div>
-                    <!-- Removido o rodapé com Total e Pagas -->
                 </div>
                 <div class="card">
                     <div class="card-title">📊 Histórico Mensal</div>
@@ -653,7 +669,8 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 5)
+        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 6)
+        //  Adicionado: dia de vencimento em contas fixas
         // ================================================================
 
         (function() {
@@ -676,7 +693,7 @@
                         { id: genId(), nome: 'INTER', saldo: 0 },
                         { id: genId(), nome: 'NUBANK', saldo: 0 }
                     ],
-                    contasFixas: [],
+                    contasFixas: [], // cada item: { id, nome, valor, pago, diaVencimento (1-31) }
                     historicoMensalCF: {},
                     historicoMensalGeral: {},
                     parcelas: [],
@@ -819,6 +836,10 @@
                         }
                         if (!d.syncQueue) d.syncQueue = [];
                         if (!d.ultimoMesVerificado) d.ultimoMesVerificado = '';
+                        // Garantir diaVencimento em contas fixas existentes
+                        d.contasFixas.forEach(cf => {
+                            if (cf.diaVencimento === undefined) cf.diaVencimento = 1;
+                        });
                         return d;
                     }
                 } catch (e) { console.warn('Erro ao carregar dados', e); }
@@ -880,7 +901,6 @@
                     toast('Nada para desfazer.');
                     return;
                 }
-                // Pega a última ação para registrar o desfazer
                 const ultimaAcao = data.historicoAcoes.length > 0 ? data.historicoAcoes[data.historicoAcoes.length - 1] : null;
                 const descUltima = ultimaAcao ? ultimaAcao.desc : 'ação desconhecida';
 
@@ -896,7 +916,6 @@
                     renderAll();
                     toast('↩ Desfeito!');
 
-                    // Registra no histórico que desfez
                     const acaoUndo = {
                         id: genId(),
                         timestamp: nowISO(),
@@ -1064,7 +1083,8 @@
                         id: cf.id,
                         nome: cf.nome,
                         valor: cf.valor,
-                        pago: completo ? !!cf.pago : false
+                        pago: completo ? !!cf.pago : false,
+                        diaVencimento: cf.diaVencimento || 1
                     }));
                 }
                 if (!data.historicoMensalGeral[mesKey]) {
@@ -1194,6 +1214,10 @@
                             <label>Valor</label>
                             <input type="number" step="0.01" id="nova-cf-valor" inputmode="decimal" placeholder="0,00" />
                         </div>
+                        <div class="input-group">
+                            <label>Dia de vencimento (1 a 31)</label>
+                            <input type="number" id="nova-cf-dia" inputmode="numeric" placeholder="Ex: 10" min="1" max="31" />
+                        </div>
                         <div class="btn-group mt-8">
                             <button class="btn btn-primary" id="nova-cf-salvar">Salvar</button>
                             <button class="btn btn-outline" id="nova-cf-cancelar">Cancelar</button>
@@ -1205,8 +1229,11 @@
                 modal.querySelector('#nova-cf-salvar').addEventListener('click', function() {
                     const nome = document.getElementById('nova-cf-nome').value.trim();
                     const valor = parseFloat(document.getElementById('nova-cf-valor').value) || 0;
+                    let dia = parseInt(document.getElementById('nova-cf-dia').value) || 1;
+                    if (dia < 1) dia = 1;
+                    if (dia > 31) dia = 31;
                     if (!nome) { toast('Nome é obrigatório.'); return; }
-                    const nova = { id: genId(), nome: nome, valor: valor, pago: false };
+                    const nova = { id: genId(), nome: nome, valor: valor, pago: false, diaVencimento: dia };
                     data.contasFixas.push(nova);
                     pushUndo('Adicionou conta fixa "' + nova.nome + '"', null, { conta: nova });
                     document.body.removeChild(modal);
@@ -1224,14 +1251,21 @@
             function renderContasFixas() {
                 const el = document.getElementById('contas-fixas-list');
                 if (!el) return;
+                // Ordenar por dia de vencimento
+                const sorted = [...data.contasFixas].sort((a, b) => (a.diaVencimento || 1) - (b.diaVencimento || 1));
+
                 let html = '';
-                data.contasFixas.forEach((cf) => {
+                sorted.forEach((cf) => {
                     const checked = cf.pago ? 'checked' : '';
+                    const dia = cf.diaVencimento || 1;
                     html += `
                         <div class="list-item" data-id="${cf.id}">
                             <div class="check ${checked}" data-id="${cf.id}" style="cursor:pointer;">✓</div>
                             <div class="info">
-                                <div class="name">${escapeHtml(cf.nome)}</div>
+                                <div class="name">
+                                    ${escapeHtml(cf.nome)}
+                                    <span class="due-badge">📅 ${dia}</span>
+                                </div>
                             </div>
                             <div style="display:flex;align-items:center;gap:4px;">
                                 <input type="number" step="0.01" value="${cf.valor}"
@@ -1239,7 +1273,7 @@
                                        inputmode="decimal"
                                        style="width:80px;padding:4px 6px;background:var(--bg);border-radius:6px;text-align:right;font-size:13px;"/>
                                 <div class="actions">
-                                    <button class="cf-rename" data-id="${cf.id}" title="Renomear">✏️</button>
+                                    <button class="cf-edit" data-id="${cf.id}" title="Editar">✏️</button>
                                     <button class="cf-delete danger" data-id="${cf.id}" title="Excluir">✕</button>
                                 </div>
                             </div>
@@ -1248,6 +1282,7 @@
                 });
                 el.innerHTML = html || '<div class="empty-state"><div class="icon">📋</div>Nenhuma conta fixa cadastrada.</div>';
 
+                // Check
                 el.querySelectorAll('.check').forEach(el2 => {
                     el2.addEventListener('click', function() {
                         const id = this.dataset.id;
@@ -1259,6 +1294,8 @@
                         renderAll();
                     });
                 });
+
+                // Valor
                 el.querySelectorAll('.cf-valor-input').forEach(inp => {
                     inp.addEventListener('change', function() {
                         const id = this.dataset.id;
@@ -1272,20 +1309,64 @@
                         }
                     });
                 });
-                el.querySelectorAll('.cf-rename').forEach(btn => {
+
+                // Editar (nome, valor, dia)
+                el.querySelectorAll('.cf-edit').forEach(btn => {
                     btn.addEventListener('click', function() {
                         const id = this.dataset.id;
                         const cf = data.contasFixas.find(c => c.id === id);
                         if (!cf) return;
-                        const novo = prompt('Novo nome para "' + cf.nome + '":', cf.nome);
-                        if (novo && novo.trim()) {
-                            const antes = cf.nome;
-                            cf.nome = novo.trim();
-                            pushUndo('Renomeou conta fixa "' + antes + '"', { nome: antes }, { nome: cf.nome });
+                        const modal = document.createElement('div');
+                        modal.className = 'modal-overlay open';
+                        modal.innerHTML = `
+                            <div class="modal-sheet">
+                                <div class="modal-handle"></div>
+                                <div class="modal-title">✏️ Editar Conta Fixa</div>
+                                <div class="input-group">
+                                    <label>Nome</label>
+                                    <input type="text" id="edit-cf-nome" value="${escapeHtml(cf.nome)}" />
+                                </div>
+                                <div class="input-group">
+                                    <label>Valor</label>
+                                    <input type="number" step="0.01" id="edit-cf-valor" value="${cf.valor}" inputmode="decimal" />
+                                </div>
+                                <div class="input-group">
+                                    <label>Dia de vencimento (1 a 31)</label>
+                                    <input type="number" id="edit-cf-dia" value="${cf.diaVencimento || 1}" inputmode="numeric" min="1" max="31" />
+                                </div>
+                                <div class="btn-group mt-8">
+                                    <button class="btn btn-primary" id="edit-cf-salvar">Salvar</button>
+                                    <button class="btn btn-outline" id="edit-cf-cancelar">Cancelar</button>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(modal);
+
+                        modal.querySelector('#edit-cf-salvar').addEventListener('click', function() {
+                            const nome = document.getElementById('edit-cf-nome').value.trim();
+                            const valor = parseFloat(document.getElementById('edit-cf-valor').value) || 0;
+                            let dia = parseInt(document.getElementById('edit-cf-dia').value) || 1;
+                            if (dia < 1) dia = 1;
+                            if (dia > 31) dia = 31;
+                            if (!nome) { toast('Nome é obrigatório.'); return; }
+                            const antes = { ...cf };
+                            cf.nome = nome;
+                            cf.valor = valor;
+                            cf.diaVencimento = dia;
+                            pushUndo('Editou conta fixa "' + antes.nome + '"', { ...antes }, { ...cf });
+                            document.body.removeChild(modal);
                             renderAll();
-                        }
+                        });
+                        modal.querySelector('#edit-cf-cancelar').addEventListener('click', function() {
+                            document.body.removeChild(modal);
+                        });
+                        modal.addEventListener('click', function(e) {
+                            if (e.target === this) this.remove();
+                        });
                     });
                 });
+
+                // Excluir
                 el.querySelectorAll('.cf-delete').forEach(btn => {
                     btn.addEventListener('click', function() {
                         const id = this.dataset.id;
@@ -1622,7 +1703,6 @@
                 }
                 el.innerHTML = html;
 
-                // Editar
                 el.querySelectorAll('.fatura-paga-edit').forEach(btn => {
                     btn.addEventListener('click', function() {
                         const id = this.dataset.id;
@@ -1632,7 +1712,6 @@
                     });
                 });
 
-                // Excluir
                 el.querySelectorAll('.fatura-paga-delete').forEach(btn => {
                     btn.addEventListener('click', function() {
                         const id = this.dataset.id;
@@ -1648,7 +1727,6 @@
             function abrirModalEditarFaturaPaga(item) {
                 const modal = document.createElement('div');
                 modal.className = 'modal-overlay open';
-                // Popula select com os cartões existentes
                 const options = data.faturas.map(f =>
                     `<option value="${escapeHtml(f.nome)}" ${f.nome === item.nomeCartao ? 'selected' : ''}>${escapeHtml(f.nome)}</option>`
                 ).join('');
@@ -1689,23 +1767,19 @@
                 `;
                 document.body.appendChild(modal);
 
-                // Adicionar novo cartão
                 modal.querySelector('#edit-fp-add-cartao').addEventListener('click', function() {
                     const novo = prompt('Nome do novo cartão:');
                     if (novo && novo.trim()) {
                         const nome = novo.trim();
-                        // Evita duplicatas
                         if (!data.faturas.some(f => f.nome === nome)) {
                             data.faturas.push({ id: genId(), nome: nome });
                             saveData();
-                            // Atualiza o select
                             const select = document.getElementById('edit-fp-cartao');
                             const opt = document.createElement('option');
                             opt.value = nome;
                             opt.textContent = nome;
                             opt.selected = true;
                             select.appendChild(opt);
-                            // Ordena
                             const opts = Array.from(select.options);
                             opts.sort((a, b) => a.text.localeCompare(b.text));
                             select.innerHTML = '';
@@ -1785,7 +1859,6 @@
                 `;
                 document.body.appendChild(modal);
 
-                // Adicionar novo cartão
                 modal.querySelector('#nova-fp-add-cartao').addEventListener('click', function() {
                     const novo = prompt('Nome do novo cartão:');
                     if (novo && novo.trim()) {
@@ -2379,7 +2452,7 @@
                 renderAll();
                 setTimeout(processSyncQueue, 1000);
                 setInterval(processSyncQueue, 30000);
-                console.log('💰 Finanças PWA carregado (revisão 5).');
+                console.log('💰 Finanças PWA carregado (revisão 6) — com dia de vencimento.');
             }
 
             window.__data = data;
