@@ -36,6 +36,7 @@
         }
         html, body {
             height: 100%;
+            min-height: -webkit-fill-available;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background: var(--bg);
             color: var(--text);
@@ -445,6 +446,17 @@
             border: 1.5px solid transparent;
         }
         .config-row input:focus { border-color: var(--primary); background: #fff; }
+
+        /* ===== FATURAS PAGAS ===== */
+        .fatura-paga-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+        .fatura-paga-item .mes { font-weight: 500; }
+        .fatura-paga-item .valor { font-weight: 600; }
     </style>
 </head>
 <body>
@@ -469,7 +481,7 @@
                     <div class="card-title">📈 Receita do Mês</div>
                     <div class="input-group">
                         <label>Receita (entra na conta BTG)</label>
-                        <input type="number" id="receita-mes" step="0.01" placeholder="0,00" />
+                        <input type="number" id="receita-mes" step="0.01" placeholder="0,00" inputmode="decimal" />
                     </div>
                 </div>
                 <div class="card">
@@ -526,6 +538,13 @@
                     </div>
                     <div class="text-muted mb-8">Digite o valor CHEIO da fatura (já inclui as parcelas daquele cartão). As parcelas da Aba 3 pagas em cartão não são somadas de novo aqui.</div>
                     <div id="faturas-list"></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">
+                        📆 Histórico de Faturas Pagas
+                        <button class="btn btn-sm btn-outline" id="add-fatura-paga-btn">+ Registrar Pagamento</button>
+                    </div>
+                    <div id="faturas-pagas-list"></div>
                 </div>
             </div>
 
@@ -636,7 +655,7 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 2)
+        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 3)
         //  Sem frameworks, sem dependências externas.
         //  Persistência: localStorage, offline com Service Worker.
         // ================================================================
@@ -651,9 +670,7 @@
             const MAX_UNDO = 50;
             const MAX_HISTORICO_ACOES = 300;
 
-            // Campos que NUNCA entram dentro de um snapshot de undo,
-            // porque senão o snapshot cresce exponencialmente (cada
-            // snapshot conteria todos os snapshots anteriores).
+            // Campos que NUNCA entram dentro de um snapshot de undo
             const CAMPOS_FORA_DO_UNDO = ['undoStack', 'undoIndex', 'historicoAcoes', 'syncQueue'];
 
             function defaultData() {
@@ -666,9 +683,7 @@
                         { id: genId(), nome: 'NUBANK', saldo: 0 }
                     ],
                     contasFixas: [],
-                    // Snapshot arquivado por mês, só de contas fixas (detalhe linha a linha)
                     historicoMensalCF: {}, // { '2025-01': [{id, nome, valor, pago}], ... }
-                    // Snapshot arquivado por mês, de TODOS os tópicos (para a evolução do dashboard)
                     historicoMensalGeral: {}, // { '2025-01': { receita, totalSaldos, totalContasFixas, totalContasFixasPagas, totalFaturas, totalCaixinhas, totalParcelasRestantes, completo } }
                     parcelas: [],
                     faturas: [
@@ -676,24 +691,20 @@
                         { id: genId(), nome: 'INTER', valor: 0 },
                         { id: genId(), nome: 'NUBANK', valor: 0 }
                     ],
+                    faturasPagas: [], // [{id, mes, ano, valor, timestamp, nomeCartao}]
                     caixinhas: [],
-                    // Histórico de ações (visível, para auditoria — não confundir com undoStack)
-                    historicoAcoes: [], // [{id, timestamp, desc, antes, depois}]
-                    // Pilha de undo: snapshots do restante do "data" (sem os campos acima)
+                    historicoAcoes: [],
                     undoStack: [],
-                    undoIndex: -1, // aponta para o snapshot que representa o estado ATUAL
-                    // Config
+                    undoIndex: -1,
                     googleSheetsUrl: '',
                     googleSheetsToken: '',
-                    syncQueue: [], // [{id, timestamp, tipo, payload, tentativas}]
+                    syncQueue: [],
                     ultimoMesVerificado: '',
                     disponivelConfig: {
                         incluirReceita: true,
                         incluirContasFixas: true,
-                        incluirFaturas: true,
                         incluirParcelasBoleto: true,
                         excluirContaFixa: {},
-                        excluirFatura: {},
                         excluirParcela: {}
                     }
                 };
@@ -702,6 +713,7 @@
             let data = loadData();
             let currentTab = 0;
             let isSyncing = false;
+            const anoAtual = new Date().getFullYear();
 
             // --------------------------------------------------------------
             // 2. HELPERS
@@ -745,7 +757,6 @@
             }
 
             function monthDiff(a, b) {
-                // quantos meses de "b" até "a" (a - b), ambos 'YYYY-MM'
                 const pa = parseMonthKey(a);
                 const pb = parseMonthKey(b);
                 return (pa.year - pb.year) * 12 + (pa.month - pb.month);
@@ -760,10 +771,6 @@
                 return getMesAnoFromDate(y, m);
             }
 
-            // Sugere o ano da 1ª cobrança a partir do mês escolhido: se esse mês já
-            // passou no calendário deste ano, presume o próximo ano (virada de ano
-            // em compras de fim de ano); senão, o ano atual. Sempre editável pelo
-            // usuário — isto é só uma sugestão pré-preenchida, nunca oculta.
             function sugerirAnoInicio(mesEscolhido) {
                 const hoje = new Date();
                 const mesAtualNum = hoje.getMonth() + 1;
@@ -775,6 +782,14 @@
                 const p = parseMonthKey(key);
                 const nomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
                 return nomes[p.month - 1] + '/' + p.year;
+            }
+
+            function escapeHtml(s) {
+                return String(s == null ? '' : s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
             }
 
             // --------------------------------------------------------------
@@ -790,14 +805,13 @@
                         if (!d.historicoAcoes) d.historicoAcoes = [];
                         if (!d.undoStack) d.undoStack = [];
                         if (d.undoIndex === undefined) d.undoIndex = -1;
+                        if (!d.faturasPagas) d.faturasPagas = [];
                         if (!d.disponivelConfig) {
                             d.disponivelConfig = {
                                 incluirReceita: true,
                                 incluirContasFixas: true,
-                                incluirFaturas: true,
                                 incluirParcelasBoleto: true,
                                 excluirContaFixa: {},
-                                excluirFatura: {},
                                 excluirParcela: {}
                             };
                         }
@@ -820,18 +834,7 @@
 
             // --------------------------------------------------------------
             // 4. UNDO / HISTÓRICO
-            //
-            // undoStack guarda cópias "enxutas" de `data` (sem undoStack,
-            // historicoAcoes nem syncQueue — senão cada snapshot carregaria
-            // todos os anteriores dentro dele e o storage explode).
-            //
-            // undoIndex aponta para o snapshot que corresponde ao estado
-            // ATUAL. Ao desfazer, voltamos para undoIndex-1. Se o usuário
-            // fizer uma ação nova depois de desfazer, descartamos os
-            // snapshots "futuros" (o ramo abandonado), como em qualquer
-            // undo/redo de editor de texto.
             // --------------------------------------------------------------
-
             function snapshotEnxuto() {
                 const copy = {};
                 for (const key in data) {
@@ -843,11 +846,9 @@
             }
 
             function pushUndo(desc, antes, depois) {
-                // Descarta qualquer ramo "futuro" (de undos anteriores não usados)
                 if (data.undoIndex < data.undoStack.length - 1) {
                     data.undoStack = data.undoStack.slice(0, data.undoIndex + 1);
                 }
-
                 data.undoStack.push(snapshotEnxuto());
                 if (data.undoStack.length > MAX_UNDO) {
                     data.undoStack.shift();
@@ -881,7 +882,6 @@
                 const prev = data.undoStack[data.undoIndex];
                 if (prev) {
                     const restored = JSON.parse(JSON.stringify(prev));
-                    // Preserva os campos que ficam fora do undo (config, filas, etc.)
                     const preservar = {};
                     CAMPOS_FORA_DO_UNDO.forEach(k => { preservar[k] = data[k]; });
                     Object.keys(data).forEach(k => delete data[k]);
@@ -919,9 +919,6 @@
                 processSyncQueue();
             }
 
-            // Envia o estado atual completo (não só o log de ações), para que
-            // a planilha reflita saldos/contas fixas/parcelas/faturas/caixinhas
-            // "nos mínimos detalhes", como pedido.
             function enqueueSyncEstado() {
                 if (!data.googleSheetsUrl) return;
                 enqueueSync('estado', {
@@ -930,6 +927,7 @@
                     contasFixas: data.contasFixas,
                     parcelas: data.parcelas,
                     faturas: data.faturas,
+                    faturasPagas: data.faturasPagas,
                     caixinhas: data.caixinhas,
                     historicoMensal: data.historicoMensalCF
                 });
@@ -1008,47 +1006,29 @@
 
             // --------------------------------------------------------------
             // 6. RESET / ARQUIVAMENTO MENSAL (Contas Fixas)
-            //
-            // Regra: o check é 100% manual. A única coisa automática é:
-            //   1) arquivar o mês que TERMINOU (com o estado real dele),
-            //   2) zerar os checks para o mês novo começar "limpo".
-            //
-            // Importante: isso arquiva o mês ANTERIOR (ultimoMesVerificado),
-            // nunca o mês atual — o mês atual só é arquivado quando ele
-            // também terminar, na próxima virada.
             // --------------------------------------------------------------
             function verificarResetMensal() {
                 const current = getCurrentMonthKey();
                 const ultimo = data.ultimoMesVerificado;
 
                 if (!ultimo) {
-                    // Primeira vez que o app roda: só marca o mês atual, sem arquivar nada
                     data.ultimoMesVerificado = current;
                     saveData();
                     return;
                 }
-
-                if (ultimo === current) return; // mesmo mês, nada a fazer
+                if (ultimo === current) return;
 
                 const diff = monthDiff(current, ultimo);
-                if (diff <= 0) {
-                    // relógio do aparelho voltou no tempo ou algo estranho — não mexe em nada
-                    return;
-                }
+                if (diff <= 0) return;
 
-                // 1) Arquiva o mês que ACABOU DE TERMINAR com o estado real das contas fixas
                 arquivarMes(ultimo, true);
 
-                // 2) Se o app ficou fechado por MAIS de um mês, os meses "pulados" no meio
-                //    não têm dado real de pagamento — arquiva como incompletos, para não
-                //    inventar histórico, mas sem deixar buraco na linha do tempo.
                 let mes = ultimo;
                 for (let i = 1; i < diff; i++) {
                     mes = addMonths(mes, 1);
                     arquivarMes(mes, false);
                 }
 
-                // 3) Reseta os checks para o mês novo
                 data.contasFixas.forEach(cf => { cf.pago = false; });
                 data.ultimoMesVerificado = current;
                 saveData();
@@ -1057,8 +1037,6 @@
                     '📆 Novo mês: contas fixas arquivadas e checks zerados.');
             }
 
-            // completo=true: usa o estado real atual das contas fixas (mês que terminou agora)
-            // completo=false: mês pulado sem dado real — arquiva os nomes/valores mas marca como incompleto
             function arquivarMes(mesKey, completo) {
                 if (!data.historicoMensalCF[mesKey]) {
                     data.historicoMensalCF[mesKey] = data.contasFixas.map(cf => ({
@@ -1071,13 +1049,20 @@
                 if (!data.historicoMensalGeral[mesKey]) {
                     const totalCF = data.contasFixas.reduce((s, c) => s + c.valor, 0);
                     const pagasCF = completo ? data.contasFixas.filter(c => c.pago).reduce((s, c) => s + c.valor, 0) : 0;
+                    const totalFaturas = completo ? data.faturas.reduce((s, f) => s + f.valor, 0) : null;
+                    const totalParcelasRestantes = completo ? data.parcelas.reduce((s, p) => {
+                        const total = p.numParcelas || 1;
+                        const pagas = (p.parcelasPagas || []).length;
+                        return s + (p.valorParcela || 0) * (total - pagas);
+                    }, 0) : null;
                     data.historicoMensalGeral[mesKey] = {
                         receita: completo ? (data.receitaMes || 0) : null,
                         totalSaldos: completo ? data.contas.reduce((s, c) => s + c.saldo, 0) : null,
                         totalContasFixas: totalCF,
                         totalContasFixasPagas: pagasCF,
-                        totalFaturas: completo ? data.faturas.reduce((s, f) => s + f.valor, 0) : null,
+                        totalFaturas: totalFaturas,
                         totalCaixinhas: completo ? data.caixinhas.reduce((s, c) => s + c.saldo, 0) : null,
+                        totalParcelasRestantes: totalParcelasRestantes,
                         completo: completo
                     };
                 }
@@ -1094,6 +1079,7 @@
                 renderParcelas();
                 renderPanorama();
                 renderFaturas();
+                renderFaturasPagas();
                 renderCaixinhas();
                 renderDashboard();
                 renderSaldoDisponivel();
@@ -1119,6 +1105,7 @@
                             <div style="display:flex;align-items:center;gap:6px;">
                                 <input type="number" step="0.01" value="${c.saldo}"
                                        class="conta-saldo-input" data-id="${c.id}"
+                                       inputmode="decimal"
                                        style="width:90px;padding:6px 8px;background:var(--bg);border-radius:8px;text-align:right;font-size:14px;"/>
                                 <div class="actions">
                                     <button class="conta-rename" data-id="${c.id}" title="Renomear">✏️</button>
@@ -1188,6 +1175,7 @@
                             <div style="display:flex;align-items:center;gap:4px;">
                                 <input type="number" step="0.01" value="${cf.valor}"
                                        class="cf-valor-input" data-id="${cf.id}"
+                                       inputmode="decimal"
                                        style="width:80px;padding:4px 6px;background:var(--bg);border-radius:6px;text-align:right;font-size:13px;"/>
                                 <div class="actions">
                                     <button class="cf-rename" data-id="${cf.id}" title="Renomear">✏️</button>
@@ -1279,10 +1267,6 @@
             }
 
             // ---------- TAB 3: PARCELAS ----------
-
-            // Descobre, para uma compra parcelada, qual índice de parcela (0-based)
-            // corresponde a um mês/ano específico — ou -1 se aquele mês não tem parcela
-            // desta compra (compra já terminou, ou ainda não começou naquele mês).
             function indiceParcelaNoMes(p, mesAnoAlvo) {
                 let mes = p.mesInicio || 1;
                 let ano = p.anoInicio || new Date().getFullYear();
@@ -1295,7 +1279,6 @@
                 return -1;
             }
 
-            // Estado de expansão dos cards (não persiste — só enquanto a página está aberta)
             const parcelasExpandidas = {};
 
             function renderParcelas() {
@@ -1303,7 +1286,6 @@
                 if (!el) return;
                 const mesAtual = getCurrentMonthKey();
 
-                // ---- Seção 1: "Parcelas deste mês" — visão rápida, sem precisar abrir cada card ----
                 const doMes = data.parcelas
                     .map(p => ({ p, idx: indiceParcelaNoMes(p, mesAtual) }))
                     .filter(x => x.idx !== -1);
@@ -1326,7 +1308,6 @@
                     });
                 }
 
-                // ---- Seção 2: cards completos, colapsáveis (histórico/edição de cada compra) ----
                 let htmlCards = '';
                 data.parcelas.forEach((p) => {
                     const totalParcelas = p.numParcelas || 1;
@@ -1406,7 +1387,7 @@
                     const i = p.parcelasPagas.indexOf(idx);
                     if (i === -1) {
                         p.parcelasPagas.push(idx);
-                        p.parcelasPagasDatas[idx] = nowISO(); // timestamp automático — o clique É a data real
+                        p.parcelasPagasDatas[idx] = nowISO();
                     } else {
                         p.parcelasPagas.splice(i, 1);
                         delete p.parcelasPagasDatas[idx];
@@ -1438,24 +1419,84 @@
                         const id = this.dataset.id;
                         const p = data.parcelas.find(x => x.id === id);
                         if (!p) return;
-                        const desc = prompt('Descrição:', p.descricao) || p.descricao;
-                        const total = prompt('Valor total:', p.valorTotal) || p.valorTotal;
-                        const num = prompt('Nº parcelas:', p.numParcelas) || p.numParcelas;
-                        const mes = prompt('Mês da 1ª cobrança (não da compra) — 1 a 12:', p.mesInicio) || p.mesInicio;
-                        const mesInt = parseInt(mes) || 1;
-                        const anoSugerido = sugerirAnoInicio(mesInt);
-                        const ano = prompt('Ano da 1ª cobrança:', p.anoInicio || anoSugerido) || (p.anoInicio || anoSugerido);
-                        const forma = prompt('Forma (cartaoBTG/cartaoInter/cartaoNubank/boleto):', p.formaPagamento) || p.formaPagamento;
-                        const antes = { ...p };
-                        p.descricao = String(desc).trim();
-                        p.valorTotal = parseFloat(total) || 0;
-                        p.numParcelas = parseInt(num) || 1;
-                        p.valorParcela = p.valorTotal / p.numParcelas;
-                        p.mesInicio = mesInt;
-                        p.anoInicio = parseInt(ano) || anoSugerido;
-                        p.formaPagamento = String(forma).trim();
-                        pushUndo('Editou compra parcelada "' + antes.descricao + '"', { ...antes }, { ...p });
-                        renderAll();
+
+                        // Abre modal com selects para edição
+                        const modal = document.createElement('div');
+                        modal.className = 'modal-overlay open';
+                        modal.innerHTML = `
+                            <div class="modal-sheet">
+                                <div class="modal-handle"></div>
+                                <div class="modal-title">✏️ Editar compra</div>
+                                <div class="input-group">
+                                    <label>Descrição</label>
+                                    <input type="text" id="edit-parcela-desc" value="${escapeHtml(p.descricao)}" />
+                                </div>
+                                <div class="input-group">
+                                    <label>Valor total</label>
+                                    <input type="number" step="0.01" id="edit-parcela-total" value="${p.valorTotal}" inputmode="decimal" />
+                                </div>
+                                <div class="input-group">
+                                    <label>Nº de parcelas</label>
+                                    <select id="edit-parcela-num">
+                                        ${Array.from({length: 36}, (_, i) => i+1).map(n => `<option value="${n}" ${n === p.numParcelas ? 'selected' : ''}>${n}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label>Mês da 1ª cobrança</label>
+                                    <select id="edit-parcela-mes">
+                                        ${Array.from({length: 12}, (_, i) => i+1).map(m => `<option value="${m}" ${m === p.mesInicio ? 'selected' : ''}>${m}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label>Ano da 1ª cobrança</label>
+                                    <select id="edit-parcela-ano">
+                                        ${Array.from({length: 16}, (_, i) => anoAtual - 10 + i).map(a => `<option value="${a}" ${a === p.anoInicio ? 'selected' : ''}>${a}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label>Forma de pagamento</label>
+                                    <select id="edit-parcela-forma">
+                                        <option value="cartaoBTG" ${p.formaPagamento === 'cartaoBTG' ? 'selected' : ''}>Cartão BTG</option>
+                                        <option value="cartaoInter" ${p.formaPagamento === 'cartaoInter' ? 'selected' : ''}>Cartão Inter</option>
+                                        <option value="cartaoNubank" ${p.formaPagamento === 'cartaoNubank' ? 'selected' : ''}>Cartão Nubank</option>
+                                        <option value="boleto" ${p.formaPagamento === 'boleto' ? 'selected' : ''}>Boleto/Carnê</option>
+                                    </select>
+                                </div>
+                                <div class="btn-group mt-8">
+                                    <button class="btn btn-primary" id="edit-parcela-salvar">Salvar</button>
+                                    <button class="btn btn-outline" id="edit-parcela-cancelar">Cancelar</button>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(modal);
+
+                        modal.querySelector('#edit-parcela-salvar').addEventListener('click', function() {
+                            const desc = document.getElementById('edit-parcela-desc').value.trim();
+                            const total = parseFloat(document.getElementById('edit-parcela-total').value) || 0;
+                            const num = parseInt(document.getElementById('edit-parcela-num').value) || 1;
+                            const mes = parseInt(document.getElementById('edit-parcela-mes').value) || 1;
+                            const ano = parseInt(document.getElementById('edit-parcela-ano').value) || anoAtual;
+                            const forma = document.getElementById('edit-parcela-forma').value;
+
+                            if (!desc) { toast('Descrição é obrigatória.'); return; }
+                            const antes = { ...p };
+                            p.descricao = desc;
+                            p.valorTotal = total;
+                            p.numParcelas = num;
+                            p.valorParcela = total / num;
+                            p.mesInicio = mes;
+                            p.anoInicio = ano;
+                            p.formaPagamento = forma;
+                            pushUndo('Editou compra parcelada "' + antes.descricao + '"', { ...antes }, { ...p });
+                            document.body.removeChild(modal);
+                            renderAll();
+                        });
+                        modal.querySelector('#edit-parcela-cancelar').addEventListener('click', function() {
+                            document.body.removeChild(modal);
+                        });
+                        modal.addEventListener('click', function(e) {
+                            if (e.target === this) this.remove();
+                        });
                     });
                 });
                 el.querySelectorAll('.parcela-delete').forEach(btn => {
@@ -1520,6 +1561,7 @@
                             <div style="display:flex;align-items:center;gap:6px;">
                                 <input type="number" step="0.01" value="${f.valor}"
                                        class="fatura-valor-input" data-id="${f.id}"
+                                       inputmode="decimal"
                                        style="width:100px;padding:6px 8px;background:var(--bg);border-radius:8px;text-align:right;font-size:14px;"/>
                                 <div class="actions">
                                     <button class="fatura-rename" data-id="${f.id}" title="Renomear">✏️</button>
@@ -1571,6 +1613,107 @@
                     });
                 });
             }
+
+            // ---------- FATURAS PAGAS ----------
+            function renderFaturasPagas() {
+                const el = document.getElementById('faturas-pagas-list');
+                if (!el) return;
+                const items = data.faturasPagas || [];
+                if (items.length === 0) {
+                    el.innerHTML = '<div class="text-muted" style="font-size:13px;">Nenhum pagamento registrado.</div>';
+                    return;
+                }
+                let html = '';
+                // ordenar por data decrescente
+                const sorted = [...items].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                for (const item of sorted) {
+                    html += `
+                        <div class="fatura-paga-item">
+                            <span class="mes">${item.nomeCartao || 'Cartão'} · ${getMonthName(item.mes + '-' + item.ano)}</span>
+                            <span class="valor">${fmt(item.valor)}</span>
+                            <button class="fatura-paga-delete" data-id="${item.id}" style="color:var(--danger);font-size:14px;">✕</button>
+                        </div>
+                    `;
+                }
+                el.innerHTML = html;
+
+                el.querySelectorAll('.fatura-paga-delete').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const id = this.dataset.id;
+                        if (!confirm('Remover este pagamento do histórico?')) return;
+                        data.faturasPagas = data.faturasPagas.filter(f => f.id !== id);
+                        pushUndo('Removeu pagamento de fatura', null, null);
+                        renderAll();
+                    });
+                });
+            }
+
+            document.getElementById('add-fatura-paga-btn')?.addEventListener('click', function() {
+                // Modal para registrar pagamento
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay open';
+                modal.innerHTML = `
+                    <div class="modal-sheet">
+                        <div class="modal-handle"></div>
+                        <div class="modal-title">📆 Registrar Pagamento de Fatura</div>
+                        <div class="input-group">
+                            <label>Cartão</label>
+                            <select id="fatura-paga-cartao">
+                                ${data.faturas.map(f => `<option value="${f.id}">${escapeHtml(f.nome)}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Mês</label>
+                            <select id="fatura-paga-mes">
+                                ${Array.from({length: 12}, (_, i) => i+1).map(m => `<option value="${m}" ${m === new Date().getMonth()+1 ? 'selected' : ''}>${m}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Ano</label>
+                            <select id="fatura-paga-ano">
+                                ${Array.from({length: 16}, (_, i) => anoAtual - 10 + i).map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Valor pago</label>
+                            <input type="number" step="0.01" id="fatura-paga-valor" inputmode="decimal" placeholder="0,00" />
+                        </div>
+                        <div class="btn-group mt-8">
+                            <button class="btn btn-primary" id="fatura-paga-salvar">Salvar</button>
+                            <button class="btn btn-outline" id="fatura-paga-cancelar">Cancelar</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                modal.querySelector('#fatura-paga-salvar').addEventListener('click', function() {
+                    const cartaoId = document.getElementById('fatura-paga-cartao').value;
+                    const mes = parseInt(document.getElementById('fatura-paga-mes').value);
+                    const ano = parseInt(document.getElementById('fatura-paga-ano').value);
+                    const valor = parseFloat(document.getElementById('fatura-paga-valor').value) || 0;
+                    if (valor <= 0) { toast('Valor deve ser positivo.'); return; }
+                    const cartao = data.faturas.find(f => f.id === cartaoId);
+                    if (!cartao) { toast('Cartão não encontrado.'); return; }
+                    const nova = {
+                        id: genId(),
+                        nomeCartao: cartao.nome,
+                        mes: mes,
+                        ano: ano,
+                        valor: valor,
+                        timestamp: nowISO()
+                    };
+                    data.faturasPagas.push(nova);
+                    pushUndo('Registrou pagamento de fatura ' + cartao.nome + ' (' + getMonthName(mes + '-' + ano) + ')', null, { faturaPaga: nova });
+                    document.body.removeChild(modal);
+                    renderAll();
+                });
+                modal.querySelector('#fatura-paga-cancelar').addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                });
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) this.remove();
+                });
+            });
 
             // ---------- TAB 5: CAIXINHAS ----------
             function renderCaixinhas() {
@@ -1679,6 +1822,7 @@
                 }, 0);
                 const totalFaturas = data.faturas.reduce((s, f) => s + f.valor, 0);
                 const totalCaixinhas = data.caixinhas.reduce((s, c) => s + c.saldo, 0);
+                const totalFaturasPagas = data.faturasPagas.reduce((s, f) => s + f.valor, 0);
 
                 el.innerHTML = `
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -1700,10 +1844,14 @@
                             <div style="font-weight:700;font-size:18px;">${fmt(totalParcelas)}</div>
                         </div>
                         <div style="background:var(--bg);padding:10px;border-radius:10px;text-align:center;">
-                            <div style="font-size:11px;color:var(--text-secondary);">Faturas</div>
+                            <div style="font-size:11px;color:var(--text-secondary);">Faturas (abertas)</div>
                             <div style="font-weight:700;font-size:18px;">${fmt(totalFaturas)}</div>
                         </div>
                         <div style="background:var(--bg);padding:10px;border-radius:10px;text-align:center;">
+                            <div style="font-size:11px;color:var(--text-secondary);">Faturas pagas (total)</div>
+                            <div style="font-weight:700;font-size:18px;">${fmt(totalFaturasPagas)}</div>
+                        </div>
+                        <div style="background:var(--bg);padding:10px;border-radius:10px;text-align:center;grid-column: span 2;">
                             <div style="font-size:11px;color:var(--text-secondary);">Caixinhas</div>
                             <div style="font-weight:700;font-size:18px;">${fmt(totalCaixinhas)}</div>
                         </div>
@@ -1716,7 +1864,7 @@
                     evolEl.innerHTML = '<div class="text-muted" style="font-size:13px;">Sem dados históricos suficientes ainda — a evolução aparece a partir do 2º mês de uso do app.</div>';
                     return;
                 }
-                let evolHtml = '<div class="scroll-table"><table><thead><tr><th>Mês</th><th>Receita</th><th>Saldos</th><th>Fixas pagas</th><th>Faturas</th><th>Caixinhas</th></tr></thead><tbody>';
+                let evolHtml = '<div class="scroll-table"><table><thead><tr><th>Mês</th><th>Receita</th><th>Saldos</th><th>Fixas pagas</th><th>Faturas</th><th>Caixinhas</th><th>Parcelas rest.</th></tr></thead><tbody>';
                 for (const key of keys) {
                     const g = data.historicoMensalGeral[key];
                     const tagIncompleto = g.completo === false ? ' <span class="tag warn">sem dado</span>' : '';
@@ -1727,13 +1875,14 @@
                         <td class="num">${fmt(g.totalContasFixasPagas)} / ${fmt(g.totalContasFixas)}</td>
                         <td class="num">${g.totalFaturas === null ? '—' : fmt(g.totalFaturas)}</td>
                         <td class="num">${g.totalCaixinhas === null ? '—' : fmt(g.totalCaixinhas)}</td>
+                        <td class="num">${g.totalParcelasRestantes === null ? '—' : fmt(g.totalParcelasRestantes)}</td>
                     </tr>`;
                 }
                 evolHtml += '</tbody></table></div>';
                 evolEl.innerHTML = evolHtml;
             }
 
-            // ---------- TAB 7: SALDO DISPONÍVEL ----------
+            // ---------- TAB 7: SALDO DISPONÍVEL (sem faturas) ----------
             function renderSaldoDisponivel() {
                 const el = document.getElementById('saldo-disponivel-detalhe');
                 const totalEl = document.getElementById('saldo-disponivel-total');
@@ -1756,14 +1905,7 @@
                     detalhes.push({ label: 'Contas Fixas', valor: -totalCF });
                 }
 
-                if (data.disponivelConfig.incluirFaturas !== false) {
-                    let totalFat = 0;
-                    data.faturas.forEach(f => {
-                        if (!data.disponivelConfig.excluirFatura[f.id]) totalFat += f.valor;
-                    });
-                    saldo -= totalFat;
-                    detalhes.push({ label: 'Faturas Cartão (já inclui parcelas do cartão)', valor: -totalFat });
-                }
+                // Faturas NÃO entram no cálculo (removido a pedido)
 
                 if (data.disponivelConfig.incluirParcelasBoleto !== false) {
                     let totalParc = 0;
@@ -1772,7 +1914,7 @@
                         if (data.disponivelConfig.excluirParcela[p.id]) return;
                         const forma = (p.formaPagamento || '').toLowerCase();
                         const ehBoleto = forma.indexOf('boleto') !== -1 || forma.indexOf('carn') !== -1;
-                        if (!ehBoleto) return; // parcelas em cartão já estão na fatura — não soma de novo
+                        if (!ehBoleto) return;
                         let mes = p.mesInicio || 1;
                         let ano = p.anoInicio || new Date().getFullYear();
                         const total = p.numParcelas || 1;
@@ -1784,7 +1926,7 @@
                         }
                     });
                     saldo -= totalParc;
-                    detalhes.push({ label: 'Parcelas do mês (boleto/carnê, fora do cartão)', valor: -totalParc });
+                    detalhes.push({ label: 'Parcelas do mês (boleto/carnê)', valor: -totalParc });
                 }
 
                 let html = '';
@@ -1815,16 +1957,11 @@
                             <span>Incluir Contas Fixas</span>
                         </div>
                         <div class="toggle-wrap" style="margin-bottom:6px;">
-                            <div class="toggle-track ${data.disponivelConfig.incluirFaturas !== false ? 'on' : ''}" data-key="incluirFaturas"></div>
-                            <span>Incluir Faturas</span>
-                        </div>
-                        <div class="toggle-wrap" style="margin-bottom:6px;">
                             <div class="toggle-track ${data.disponivelConfig.incluirParcelasBoleto !== false ? 'on' : ''}" data-key="incluirParcelasBoleto"></div>
                             <span>Incluir Parcelas (boleto/carnê)</span>
                         </div>
                         <div class="text-muted" style="font-size:12px;margin-top:8px;">
-                            💡 Parcelas pagas em cartão (BTG/Inter/Nubank) não têm toggle aqui de propósito —
-                            elas já estão dentro do valor da fatura, então somar de novo duplicaria o gasto.
+                            💡 As faturas de cartão <strong>não</strong> entram neste cálculo, conforme solicitado.
                         </div>
                     `;
                     opcoesEl.querySelectorAll('.toggle-track').forEach(t => {
@@ -1858,14 +1995,6 @@
                     `;
                 }
                 el.innerHTML = html;
-            }
-
-            function escapeHtml(s) {
-                return String(s == null ? '' : s)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;');
             }
 
             // --------------------------------------------------------------
@@ -1914,33 +2043,89 @@
             });
 
             document.getElementById('add-parcela-btn')?.addEventListener('click', function() {
-                const desc = prompt('Descrição da compra:');
-                if (!desc || !desc.trim()) return;
-                const total = prompt('Valor total:', '0');
-                const valTotal = parseFloat(total) || 0;
-                const num = prompt('Nº de parcelas:', '1');
-                const numParc = parseInt(num) || 1;
-                const mes = prompt('Mês da 1ª cobrança (não da compra) — 1 a 12:', new Date().getMonth() + 1);
-                const mesIni = parseInt(mes) || 1;
-                const anoSugerido = sugerirAnoInicio(mesIni);
-                const ano = prompt('Ano da 1ª cobrança:', anoSugerido);
-                const anoIni = parseInt(ano) || anoSugerido;
-                const forma = prompt('Forma (cartaoBTG/cartaoInter/cartaoNubank/boleto):', 'boleto');
-                const nova = {
-                    id: genId(),
-                    descricao: desc.trim(),
-                    valorTotal: valTotal,
-                    numParcelas: numParc,
-                    valorParcela: valTotal / numParc,
-                    mesInicio: mesIni,
-                    anoInicio: anoIni,
-                    formaPagamento: (forma || 'boleto').trim(),
-                    parcelasPagas: [],
-                    parcelasPagasDatas: {}
-                };
-                data.parcelas.push(nova);
-                pushUndo('Adicionou compra "' + nova.descricao + '"', null, { parcela: nova });
-                renderAll();
+                // Usa modal com selects
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay open';
+                modal.innerHTML = `
+                    <div class="modal-sheet">
+                        <div class="modal-handle"></div>
+                        <div class="modal-title">🛒 Nova compra parcelada</div>
+                        <div class="input-group">
+                            <label>Descrição</label>
+                            <input type="text" id="nova-parcela-desc" placeholder="Ex: Geladeira" />
+                        </div>
+                        <div class="input-group">
+                            <label>Valor total</label>
+                            <input type="number" step="0.01" id="nova-parcela-total" inputmode="decimal" placeholder="0,00" />
+                        </div>
+                        <div class="input-group">
+                            <label>Nº de parcelas</label>
+                            <select id="nova-parcela-num">
+                                ${Array.from({length: 36}, (_, i) => i+1).map(n => `<option value="${n}" ${n === 12 ? 'selected' : ''}>${n}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Mês da 1ª cobrança</label>
+                            <select id="nova-parcela-mes">
+                                ${Array.from({length: 12}, (_, i) => i+1).map(m => `<option value="${m}" ${m === new Date().getMonth()+1 ? 'selected' : ''}>${m}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Ano da 1ª cobrança</label>
+                            <select id="nova-parcela-ano">
+                                ${Array.from({length: 16}, (_, i) => anoAtual - 10 + i).map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Forma de pagamento</label>
+                            <select id="nova-parcela-forma">
+                                <option value="cartaoBTG">Cartão BTG</option>
+                                <option value="cartaoInter">Cartão Inter</option>
+                                <option value="cartaoNubank">Cartão Nubank</option>
+                                <option value="boleto">Boleto/Carnê</option>
+                            </select>
+                        </div>
+                        <div class="btn-group mt-8">
+                            <button class="btn btn-primary" id="nova-parcela-salvar">Salvar</button>
+                            <button class="btn btn-outline" id="nova-parcela-cancelar">Cancelar</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                modal.querySelector('#nova-parcela-salvar').addEventListener('click', function() {
+                    const desc = document.getElementById('nova-parcela-desc').value.trim();
+                    const total = parseFloat(document.getElementById('nova-parcela-total').value) || 0;
+                    const num = parseInt(document.getElementById('nova-parcela-num').value) || 1;
+                    const mes = parseInt(document.getElementById('nova-parcela-mes').value) || 1;
+                    const ano = parseInt(document.getElementById('nova-parcela-ano').value) || anoAtual;
+                    const forma = document.getElementById('nova-parcela-forma').value;
+
+                    if (!desc) { toast('Descrição é obrigatória.'); return; }
+                    if (total <= 0) { toast('Valor total deve ser positivo.'); return; }
+                    const nova = {
+                        id: genId(),
+                        descricao: desc,
+                        valorTotal: total,
+                        numParcelas: num,
+                        valorParcela: total / num,
+                        mesInicio: mes,
+                        anoInicio: ano,
+                        formaPagamento: forma,
+                        parcelasPagas: [],
+                        parcelasPagasDatas: {}
+                    };
+                    data.parcelas.push(nova);
+                    pushUndo('Adicionou compra "' + nova.descricao + '"', null, { parcela: nova });
+                    document.body.removeChild(modal);
+                    renderAll();
+                });
+                modal.querySelector('#nova-parcela-cancelar').addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                });
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) this.remove();
+                });
             });
 
             document.getElementById('add-fatura-btn')?.addEventListener('click', function() {
@@ -2066,10 +2251,10 @@
                 renderAll();
                 setTimeout(processSyncQueue, 1000);
                 setInterval(processSyncQueue, 30000);
-                console.log('💰 Finanças PWA carregado (revisão 2).');
+                console.log('💰 Finanças PWA carregado (revisão 3).');
             }
 
-            window.__data = data; // só para debug no console
+            window.__data = data; // debug
 
             init();
 
