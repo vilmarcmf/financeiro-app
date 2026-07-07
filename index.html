@@ -760,6 +760,17 @@
                 return getMesAnoFromDate(y, m);
             }
 
+            // Sugere o ano da 1ª cobrança a partir do mês escolhido: se esse mês já
+            // passou no calendário deste ano, presume o próximo ano (virada de ano
+            // em compras de fim de ano); senão, o ano atual. Sempre editável pelo
+            // usuário — isto é só uma sugestão pré-preenchida, nunca oculta.
+            function sugerirAnoInicio(mesEscolhido) {
+                const hoje = new Date();
+                const mesAtualNum = hoje.getMonth() + 1;
+                const anoAtualNum = hoje.getFullYear();
+                return mesEscolhido < mesAtualNum ? anoAtualNum + 1 : anoAtualNum;
+            }
+
             function getMonthName(key) {
                 const p = parseMonthKey(key);
                 const nomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -1268,90 +1279,188 @@
             }
 
             // ---------- TAB 3: PARCELAS ----------
+
+            // Descobre, para uma compra parcelada, qual índice de parcela (0-based)
+            // corresponde a um mês/ano específico — ou -1 se aquele mês não tem parcela
+            // desta compra (compra já terminou, ou ainda não começou naquele mês).
+            function indiceParcelaNoMes(p, mesAnoAlvo) {
+                let mes = p.mesInicio || 1;
+                let ano = p.anoInicio || new Date().getFullYear();
+                const total = p.numParcelas || 1;
+                for (let i = 0; i < total; i++) {
+                    if (getMesAnoFromDate(ano, mes) === mesAnoAlvo) return i;
+                    mes++;
+                    if (mes > 12) { mes = 1; ano++; }
+                }
+                return -1;
+            }
+
+            // Estado de expansão dos cards (não persiste — só enquanto a página está aberta)
+            const parcelasExpandidas = {};
+
             function renderParcelas() {
                 const el = document.getElementById('parcelas-list');
                 if (!el) return;
-                let html = '';
+                const mesAtual = getCurrentMonthKey();
+
+                // ---- Seção 1: "Parcelas deste mês" — visão rápida, sem precisar abrir cada card ----
+                const doMes = data.parcelas
+                    .map(p => ({ p, idx: indiceParcelaNoMes(p, mesAtual) }))
+                    .filter(x => x.idx !== -1);
+
+                let htmlResumo = '';
+                if (doMes.length === 0) {
+                    htmlResumo = '<div class="text-muted" style="font-size:13px;">Nenhuma parcela cai neste mês.</div>';
+                } else {
+                    doMes.forEach(({ p, idx }) => {
+                        const isPaga = (p.parcelasPagas || []).includes(idx);
+                        htmlResumo += `
+                            <div class="list-item" data-id="${p.id}" data-idx="${idx}">
+                                <div class="check resumo-check ${isPaga ? 'checked' : ''}" data-id="${p.id}" data-idx="${idx}" style="cursor:pointer;">✓</div>
+                                <div class="info">
+                                    <div class="name">${escapeHtml(p.descricao || 'Sem descrição')}</div>
+                                    <div class="sub">Parcela ${idx + 1}/${p.numParcelas} · ${fmt(p.valorParcela)}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                // ---- Seção 2: cards completos, colapsáveis (histórico/edição de cada compra) ----
+                let htmlCards = '';
                 data.parcelas.forEach((p) => {
                     const totalParcelas = p.numParcelas || 1;
                     const pagas = (p.parcelasPagas || []).length;
                     const progresso = Math.round((pagas / totalParcelas) * 100);
-                    html += `
+                    const expandido = !!parcelasExpandidas[p.id];
+                    const idxMesAtual = indiceParcelaNoMes(p, mesAtual);
+                    const datas = p.parcelasPagasDatas || {};
+
+                    htmlCards += `
                         <div class="card" style="margin-bottom:8px;padding:12px;background:var(--bg);">
-                            <div class="flex-between">
-                                <div><strong>${escapeHtml(p.descricao || 'Sem descrição')}</strong></div>
-                                <div style="font-size:13px;color:var(--text-secondary);">${escapeHtml(p.formaPagamento || '')}</div>
+                            <div class="flex-between parcela-toggle" data-id="${p.id}" style="cursor:pointer;">
+                                <div>
+                                    <strong>${escapeHtml(p.descricao || 'Sem descrição')}</strong>
+                                    <span style="font-size:12px;color:var(--text-secondary);"> · ${pagas}/${totalParcelas} pagas</span>
+                                </div>
+                                <span style="font-size:16px;color:var(--text-secondary);">${expandido ? '▲' : '▼'}</span>
                             </div>
-                            <div class="flex-between" style="font-size:13px;margin-top:4px;">
-                                <span>${fmt(p.valorTotal)} · ${p.numParcelas}x ${fmt(p.valorParcela)}</span>
-                                <span>${p.mesInicio}/${p.anoInicio}</span>
-                            </div>
-                            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
-                                <span style="font-size:12px;color:var(--text-secondary);">Parcelas pagas:</span>
-                                ${Array.from({ length: totalParcelas }, (_, idx) => {
-                                    const isPaga = (p.parcelasPagas || []).includes(idx);
-                                    return `<button class="parcela-check" data-id="${p.id}" data-idx="${idx}"
-                                            style="width:30px;height:30px;border-radius:50%;border:2px solid ${isPaga ? 'var(--success)' : 'var(--border)'};
-                                            background:${isPaga ? 'var(--success)' : 'transparent'};
-                                            color:${isPaga ? '#fff' : 'var(--text-secondary)'};
-                                            font-size:12px;font-weight:600;">${idx + 1}</button>`;
-                                }).join('')}
-                            </div>
-                            <div class="progress-bar" style="margin-top:4px;">
+                            <div class="progress-bar" style="margin-top:6px;">
                                 <div class="fill ${progresso === 100 ? 'green' : progresso > 50 ? 'yellow' : ''}" style="width:${progresso}%;"></div>
                             </div>
-                            <div class="flex-between" style="margin-top:4px;font-size:12px;color:var(--text-secondary);">
-                                <span>${pagas}/${totalParcelas} pagas</span>
-                                <div class="actions">
-                                    <button class="parcela-edit" data-id="${p.id}" style="font-size:14px;">✏️</button>
-                                    <button class="parcela-delete danger" data-id="${p.id}" style="font-size:14px;">✕</button>
+                            ${expandido ? `
+                                <div style="margin-top:10px;">
+                                    <div class="flex-between" style="font-size:13px;">
+                                        <span>${fmt(p.valorTotal)} · ${p.numParcelas}x ${fmt(p.valorParcela)}</span>
+                                        <span>${escapeHtml(p.formaPagamento || '')}</span>
+                                    </div>
+                                    <div class="text-muted" style="font-size:12px;margin-top:2px;">1ª cobrança: ${p.mesInicio}/${p.anoInicio}</div>
+                                    <div style="display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                                        ${Array.from({ length: totalParcelas }, (_, idx) => {
+                                            const isPaga = (p.parcelasPagas || []).includes(idx);
+                                            const ehMesAtual = idx === idxMesAtual;
+                                            return `<button class="parcela-check" data-id="${p.id}" data-idx="${idx}"
+                                                    style="width:32px;height:32px;border-radius:50%;
+                                                    border:2px solid ${isPaga ? 'var(--success)' : (ehMesAtual ? 'var(--primary)' : 'var(--border)')};
+                                                    background:${isPaga ? 'var(--success)' : 'transparent'};
+                                                    color:${isPaga ? '#fff' : 'var(--text-secondary)'};
+                                                    font-size:12px;font-weight:600;">${idx + 1}</button>`;
+                                        }).join('')}
+                                    </div>
+                                    ${Object.keys(datas).length > 0 ? `
+                                        <div class="text-muted" style="font-size:11px;margin-top:8px;">
+                                            Última marcação: parcela ${(function() {
+                                                const idxs = Object.keys(datas).map(Number).sort((a, b) => (datas[b] || 0) - (datas[a] || 0));
+                                                const ultimo = idxs[0];
+                                                return (ultimo + 1) + ' em ' + fmtDate(datas[ultimo]);
+                                            })()}
+                                        </div>
+                                    ` : ''}
+                                    <div class="flex-between mt-8">
+                                        <div class="actions">
+                                            <button class="parcela-edit" data-id="${p.id}" style="font-size:14px;">✏️ Editar</button>
+                                            <button class="parcela-delete danger" data-id="${p.id}" style="font-size:14px;">✕ Excluir</button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            ` : ''}
                         </div>
                     `;
                 });
-                el.innerHTML = html || '<div class="empty-state"><div class="icon">🛒</div>Nenhuma compra parcelada.</div>';
 
+                el.innerHTML = `
+                    <div style="margin-bottom:16px;">
+                        <div style="font-weight:600;font-size:14px;margin-bottom:6px;">📅 Parcelas deste mês</div>
+                        ${htmlResumo}
+                    </div>
+                    <div style="font-weight:600;font-size:14px;margin-bottom:6px;">🗂️ Todas as compras</div>
+                    ${htmlCards || '<div class="empty-state"><div class="icon">🛒</div>Nenhuma compra parcelada.</div>'}
+                `;
+
+                function marcarParcela(id, idx) {
+                    const p = data.parcelas.find(x => x.id === id);
+                    if (!p) return;
+                    if (!p.parcelasPagas) p.parcelasPagas = [];
+                    if (!p.parcelasPagasDatas) p.parcelasPagasDatas = {};
+                    const antes = [...p.parcelasPagas];
+                    const i = p.parcelasPagas.indexOf(idx);
+                    if (i === -1) {
+                        p.parcelasPagas.push(idx);
+                        p.parcelasPagasDatas[idx] = nowISO(); // timestamp automático — o clique É a data real
+                    } else {
+                        p.parcelasPagas.splice(i, 1);
+                        delete p.parcelasPagasDatas[idx];
+                    }
+                    pushUndo('Alterou parcela ' + (idx + 1) + ' de ' + p.descricao, { parcelasPagas: antes }, { parcelasPagas: [...p.parcelasPagas] });
+                    renderAll();
+                }
+
+                el.querySelectorAll('.resumo-check').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        marcarParcela(this.dataset.id, parseInt(this.dataset.idx));
+                    });
+                });
                 el.querySelectorAll('.parcela-check').forEach(btn => {
                     btn.addEventListener('click', function() {
+                        marcarParcela(this.dataset.id, parseInt(this.dataset.idx));
+                    });
+                });
+                el.querySelectorAll('.parcela-toggle').forEach(row => {
+                    row.addEventListener('click', function() {
                         const id = this.dataset.id;
-                        const idx = parseInt(this.dataset.idx);
-                        const p = data.parcelas.find(x => x.id === id);
-                        if (!p) return;
-                        if (!p.parcelasPagas) p.parcelasPagas = [];
-                        const antes = [...p.parcelasPagas];
-                        const i = p.parcelasPagas.indexOf(idx);
-                        if (i === -1) p.parcelasPagas.push(idx);
-                        else p.parcelasPagas.splice(i, 1);
-                        pushUndo('Alterou parcela ' + (idx + 1) + ' de ' + p.descricao, { parcelasPagas: antes }, { parcelasPagas: [...p.parcelasPagas] });
-                        renderAll();
+                        parcelasExpandidas[id] = !parcelasExpandidas[id];
+                        renderParcelas();
                     });
                 });
                 el.querySelectorAll('.parcela-edit').forEach(btn => {
-                    btn.addEventListener('click', function() {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
                         const id = this.dataset.id;
                         const p = data.parcelas.find(x => x.id === id);
                         if (!p) return;
                         const desc = prompt('Descrição:', p.descricao) || p.descricao;
                         const total = prompt('Valor total:', p.valorTotal) || p.valorTotal;
                         const num = prompt('Nº parcelas:', p.numParcelas) || p.numParcelas;
-                        const mes = prompt('Mês início (1-12):', p.mesInicio) || p.mesInicio;
-                        const ano = prompt('Ano início:', p.anoInicio) || p.anoInicio;
+                        const mes = prompt('Mês da 1ª cobrança (não da compra) — 1 a 12:', p.mesInicio) || p.mesInicio;
+                        const mesInt = parseInt(mes) || 1;
+                        const anoSugerido = sugerirAnoInicio(mesInt);
+                        const ano = prompt('Ano da 1ª cobrança:', p.anoInicio || anoSugerido) || (p.anoInicio || anoSugerido);
                         const forma = prompt('Forma (cartaoBTG/cartaoInter/cartaoNubank/boleto):', p.formaPagamento) || p.formaPagamento;
                         const antes = { ...p };
                         p.descricao = String(desc).trim();
                         p.valorTotal = parseFloat(total) || 0;
                         p.numParcelas = parseInt(num) || 1;
                         p.valorParcela = p.valorTotal / p.numParcelas;
-                        p.mesInicio = parseInt(mes) || 1;
-                        p.anoInicio = parseInt(ano) || 2024;
+                        p.mesInicio = mesInt;
+                        p.anoInicio = parseInt(ano) || anoSugerido;
                         p.formaPagamento = String(forma).trim();
                         pushUndo('Editou compra parcelada "' + antes.descricao + '"', { ...antes }, { ...p });
                         renderAll();
                     });
                 });
                 el.querySelectorAll('.parcela-delete').forEach(btn => {
-                    btn.addEventListener('click', function() {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
                         const id = this.dataset.id;
                         const p = data.parcelas.find(x => x.id === id);
                         if (!p) return;
@@ -1811,10 +1920,11 @@
                 const valTotal = parseFloat(total) || 0;
                 const num = prompt('Nº de parcelas:', '1');
                 const numParc = parseInt(num) || 1;
-                const mes = prompt('Mês início (1-12):', new Date().getMonth() + 1);
+                const mes = prompt('Mês da 1ª cobrança (não da compra) — 1 a 12:', new Date().getMonth() + 1);
                 const mesIni = parseInt(mes) || 1;
-                const ano = prompt('Ano início:', new Date().getFullYear());
-                const anoIni = parseInt(ano) || new Date().getFullYear();
+                const anoSugerido = sugerirAnoInicio(mesIni);
+                const ano = prompt('Ano da 1ª cobrança:', anoSugerido);
+                const anoIni = parseInt(ano) || anoSugerido;
                 const forma = prompt('Forma (cartaoBTG/cartaoInter/cartaoNubank/boleto):', 'boleto');
                 const nova = {
                     id: genId(),
@@ -1825,7 +1935,8 @@
                     mesInicio: mesIni,
                     anoInicio: anoIni,
                     formaPagamento: (forma || 'boleto').trim(),
-                    parcelasPagas: []
+                    parcelasPagas: [],
+                    parcelasPagasDatas: {}
                 };
                 data.parcelas.push(nova);
                 pushUndo('Adicionou compra "' + nova.descricao + '"', null, { parcela: nova });
