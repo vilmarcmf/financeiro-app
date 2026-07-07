@@ -330,14 +330,6 @@
             align-items: baseline;
         }
         .history-item .h-time { color: var(--text-secondary); font-size: 11px; white-space: nowrap; min-width: 60px; }
-        .history-item .h-action {
-            font-weight: 500;
-            font-size: 12px;
-            padding: 2px 8px;
-            border-radius: 4px;
-            background: var(--bg);
-            white-space: nowrap;
-        }
         .history-item .h-desc { flex: 1; word-break: break-word; }
 
         /* ===== MISC ===== */
@@ -350,8 +342,6 @@
         .gap-8 { gap: 8px; }
         .gap-4 { gap: 4px; }
         .wrap { flex-wrap: wrap; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 
         .empty-state { text-align: center; padding: 24px 0; color: var(--text-secondary); font-size: 14px; }
         .empty-state .icon { font-size: 40px; margin-bottom: 8px; opacity: 0.5; }
@@ -367,15 +357,11 @@
         }
         .tag.warn { background: #fff4d6; color: #92700c; }
 
-        .highlight { background: var(--warning); padding: 0 4px; border-radius: 4px; }
-
         /* ===== RESPONSIVE ===== */
         @media (max-width: 400px) {
             .tab-btn { padding: 0 8px; min-width: 44px; font-size: 9px; }
             .tab-btn .tab-icon { font-size: 18px; }
             .card { padding: 12px; }
-            .grid-2 { grid-template-columns: 1fr; }
-            .grid-3 { grid-template-columns: 1fr 1fr; }
         }
         @media (min-width: 481px) {
             #app { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
@@ -441,13 +427,45 @@
         /* ===== FATURAS PAGAS ===== */
         .fatura-paga-item {
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            padding: 6px 0;
+            padding: 8px 0;
             border-bottom: 1px solid var(--border);
             font-size: 13px;
         }
-        .fatura-paga-item .mes { font-weight: 500; }
-        .fatura-paga-item .valor { font-weight: 600; }
+        .fatura-paga-item .mes { font-weight: 500; flex: 1; }
+        .fatura-paga-item .valor { font-weight: 600; margin-right: 8px; }
+        .fatura-paga-item .actions { display: flex; gap: 4px; }
+        .fatura-paga-item .actions button {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .fatura-paga-item .actions button:active { background: var(--border); }
+        .fatura-paga-item .actions button.danger:active { background: var(--danger); color: #fff; }
+
+        .cartao-select-wrapper {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .cartao-select-wrapper select { flex: 1; }
+        .cartao-select-wrapper button {
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 16px;
+            min-height: 44px;
+            width: 44px;
+        }
+        .cartao-select-wrapper button:active { background: var(--primary-dark); }
     </style>
 </head>
 <body>
@@ -493,10 +511,7 @@
                     </div>
                     <div class="text-muted mb-8">O check é só visual — marque quando você mesmo pagar. Ele zera automaticamente no início de cada mês (o mês anterior fica arquivado abaixo).</div>
                     <div id="contas-fixas-list"></div>
-                    <div class="flex-between mt-8 text-muted" style="font-size:12px;">
-                        <span>Total: <strong id="cf-total">R$ 0,00</strong></span>
-                        <span>Pagas: <strong id="cf-pagas">0</strong> / <span id="cf-total-count">0</span></span>
-                    </div>
+                    <!-- Removido o rodapé com Total e Pagas -->
                 </div>
                 <div class="card">
                     <div class="card-title">📊 Histórico Mensal</div>
@@ -638,8 +653,7 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 4)
-        //  Sem frameworks, sem dependências externas.
+        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 5)
         // ================================================================
 
         (function() {
@@ -666,7 +680,11 @@
                     historicoMensalCF: {},
                     historicoMensalGeral: {},
                     parcelas: [],
-                    faturas: [], // mantido para compatibilidade, mas não usado na UI
+                    faturas: [
+                        { id: genId(), nome: 'BTG' },
+                        { id: genId(), nome: 'INTER' },
+                        { id: genId(), nome: 'NUBANK' }
+                    ],
                     faturasPagas: [],
                     caixinhas: [],
                     historicoAcoes: [],
@@ -783,7 +801,13 @@
                         if (!d.undoStack) d.undoStack = [];
                         if (d.undoIndex === undefined) d.undoIndex = -1;
                         if (!d.faturasPagas) d.faturasPagas = [];
-                        if (!d.faturas) d.faturas = [];
+                        if (!d.faturas || d.faturas.length === 0) {
+                            d.faturas = [
+                                { id: genId(), nome: 'BTG' },
+                                { id: genId(), nome: 'INTER' },
+                                { id: genId(), nome: 'NUBANK' }
+                            ];
+                        }
                         if (!d.disponivelConfig) {
                             d.disponivelConfig = {
                                 incluirReceita: true,
@@ -856,6 +880,10 @@
                     toast('Nada para desfazer.');
                     return;
                 }
+                // Pega a última ação para registrar o desfazer
+                const ultimaAcao = data.historicoAcoes.length > 0 ? data.historicoAcoes[data.historicoAcoes.length - 1] : null;
+                const descUltima = ultimaAcao ? ultimaAcao.desc : 'ação desconhecida';
+
                 data.undoIndex--;
                 const prev = data.undoStack[data.undoIndex];
                 if (prev) {
@@ -867,7 +895,22 @@
                     saveData();
                     renderAll();
                     toast('↩ Desfeito!');
-                    enqueueSyncEstado();
+
+                    // Registra no histórico que desfez
+                    const acaoUndo = {
+                        id: genId(),
+                        timestamp: nowISO(),
+                        desc: 'Desfez: ' + descUltima,
+                        antes: null,
+                        depois: null
+                    };
+                    data.historicoAcoes.push(acaoUndo);
+                    if (data.historicoAcoes.length > MAX_HISTORICO_ACOES) {
+                        data.historicoAcoes.shift();
+                    }
+                    saveData();
+                    renderHistory();
+                    enqueueSync('acao', acaoUndo);
                 }
             }
 
@@ -1136,7 +1179,6 @@
             }
 
             // ---------- TAB 2: CONTAS FIXAS ----------
-            // Função auxiliar para abrir modal de criação de conta fixa
             function modalAddContaFixa() {
                 const modal = document.createElement('div');
                 modal.className = 'modal-overlay open';
@@ -1176,7 +1218,6 @@
                 modal.addEventListener('click', function(e) {
                     if (e.target === this) this.remove();
                 });
-                // Foco no primeiro campo
                 setTimeout(() => document.getElementById('nova-cf-nome').focus(), 100);
             }
 
@@ -1257,12 +1298,6 @@
                         renderAll();
                     });
                 });
-
-                const total = data.contasFixas.reduce((s, c) => s + c.valor, 0);
-                const pagas = data.contasFixas.filter(c => c.pago).length;
-                document.getElementById('cf-total').textContent = fmt(total);
-                document.getElementById('cf-pagas').textContent = pagas;
-                document.getElementById('cf-total-count').textContent = data.contasFixas.length;
             }
 
             function renderContasFixasHistorico() {
@@ -1578,79 +1613,224 @@
                         <div class="fatura-paga-item">
                             <span class="mes">${escapeHtml(nomeCartao)} · ${getMonthName(item.mes + '-' + item.ano)}</span>
                             <span class="valor">${fmt(item.valor)}</span>
-                            <button class="fatura-paga-delete" data-id="${item.id}" style="color:var(--danger);font-size:14px;">✕</button>
+                            <div class="actions">
+                                <button class="fatura-paga-edit" data-id="${item.id}" title="Editar">✏️</button>
+                                <button class="fatura-paga-delete danger" data-id="${item.id}" title="Excluir">✕</button>
+                            </div>
                         </div>
                     `;
                 }
                 el.innerHTML = html;
 
+                // Editar
+                el.querySelectorAll('.fatura-paga-edit').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const id = this.dataset.id;
+                        const item = data.faturasPagas.find(f => f.id === id);
+                        if (!item) return;
+                        abrirModalEditarFaturaPaga(item);
+                    });
+                });
+
+                // Excluir
                 el.querySelectorAll('.fatura-paga-delete').forEach(btn => {
                     btn.addEventListener('click', function() {
                         const id = this.dataset.id;
                         if (!confirm('Remover este pagamento do histórico?')) return;
+                        const antes = data.faturasPagas.map(f => ({ ...f }));
                         data.faturasPagas = data.faturasPagas.filter(f => f.id !== id);
-                        pushUndo('Removeu pagamento de fatura', null, null);
+                        pushUndo('Removeu pagamento de fatura', { faturasPagas: antes }, { faturasPagas: data.faturasPagas });
                         renderAll();
                     });
+                });
+            }
+
+            function abrirModalEditarFaturaPaga(item) {
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay open';
+                // Popula select com os cartões existentes
+                const options = data.faturas.map(f =>
+                    `<option value="${escapeHtml(f.nome)}" ${f.nome === item.nomeCartao ? 'selected' : ''}>${escapeHtml(f.nome)}</option>`
+                ).join('');
+                modal.innerHTML = `
+                    <div class="modal-sheet">
+                        <div class="modal-handle"></div>
+                        <div class="modal-title">✏️ Editar Pagamento</div>
+                        <div class="input-group">
+                            <label>Cartão</label>
+                            <div class="cartao-select-wrapper">
+                                <select id="edit-fp-cartao">
+                                    ${options}
+                                </select>
+                                <button id="edit-fp-add-cartao" title="Adicionar cartão">+</button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Mês</label>
+                            <select id="edit-fp-mes">
+                                ${Array.from({length: 12}, (_, i) => i+1).map(m => `<option value="${m}" ${m === item.mes ? 'selected' : ''}>${m}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Ano</label>
+                            <select id="edit-fp-ano">
+                                ${Array.from({length: 16}, (_, i) => anoAtual - 10 + i).map(a => `<option value="${a}" ${a === item.ano ? 'selected' : ''}>${a}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Valor</label>
+                            <input type="number" step="0.01" id="edit-fp-valor" value="${item.valor}" inputmode="decimal" />
+                        </div>
+                        <div class="btn-group mt-8">
+                            <button class="btn btn-primary" id="edit-fp-salvar">Salvar</button>
+                            <button class="btn btn-outline" id="edit-fp-cancelar">Cancelar</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                // Adicionar novo cartão
+                modal.querySelector('#edit-fp-add-cartao').addEventListener('click', function() {
+                    const novo = prompt('Nome do novo cartão:');
+                    if (novo && novo.trim()) {
+                        const nome = novo.trim();
+                        // Evita duplicatas
+                        if (!data.faturas.some(f => f.nome === nome)) {
+                            data.faturas.push({ id: genId(), nome: nome });
+                            saveData();
+                            // Atualiza o select
+                            const select = document.getElementById('edit-fp-cartao');
+                            const opt = document.createElement('option');
+                            opt.value = nome;
+                            opt.textContent = nome;
+                            opt.selected = true;
+                            select.appendChild(opt);
+                            // Ordena
+                            const opts = Array.from(select.options);
+                            opts.sort((a, b) => a.text.localeCompare(b.text));
+                            select.innerHTML = '';
+                            opts.forEach(o => select.appendChild(o));
+                            toast('Cartão adicionado!');
+                        } else {
+                            toast('Cartão já existe.');
+                        }
+                    }
+                });
+
+                modal.querySelector('#edit-fp-salvar').addEventListener('click', function() {
+                    const cartao = document.getElementById('edit-fp-cartao').value;
+                    const mes = parseInt(document.getElementById('edit-fp-mes').value);
+                    const ano = parseInt(document.getElementById('edit-fp-ano').value);
+                    const valor = parseFloat(document.getElementById('edit-fp-valor').value) || 0;
+                    if (!cartao) { toast('Selecione um cartão.'); return; }
+                    if (valor <= 0) { toast('Valor deve ser positivo.'); return; }
+                    const antes = { ...item };
+                    item.nomeCartao = cartao;
+                    item.mes = mes;
+                    item.ano = ano;
+                    item.valor = valor;
+                    item.timestamp = nowISO();
+                    pushUndo('Editou pagamento de fatura', { antes }, { depois: item });
+                    document.body.removeChild(modal);
+                    renderAll();
+                });
+                modal.querySelector('#edit-fp-cancelar').addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                });
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) this.remove();
                 });
             }
 
             document.getElementById('add-fatura-paga-btn')?.addEventListener('click', function() {
                 const modal = document.createElement('div');
                 modal.className = 'modal-overlay open';
+                const options = data.faturas.map(f =>
+                    `<option value="${escapeHtml(f.nome)}">${escapeHtml(f.nome)}</option>`
+                ).join('');
                 modal.innerHTML = `
                     <div class="modal-sheet">
                         <div class="modal-handle"></div>
                         <div class="modal-title">📆 Registrar Pagamento de Fatura</div>
                         <div class="input-group">
-                            <label>Nome do Cartão</label>
-                            <input type="text" id="fatura-paga-cartao-nome" placeholder="Ex: Nubank" />
+                            <label>Cartão</label>
+                            <div class="cartao-select-wrapper">
+                                <select id="nova-fp-cartao">
+                                    ${options}
+                                </select>
+                                <button id="nova-fp-add-cartao" title="Adicionar cartão">+</button>
+                            </div>
                         </div>
                         <div class="input-group">
                             <label>Mês</label>
-                            <select id="fatura-paga-mes">
+                            <select id="nova-fp-mes">
                                 ${Array.from({length: 12}, (_, i) => i+1).map(m => `<option value="${m}" ${m === new Date().getMonth()+1 ? 'selected' : ''}>${m}</option>`).join('')}
                             </select>
                         </div>
                         <div class="input-group">
                             <label>Ano</label>
-                            <select id="fatura-paga-ano">
+                            <select id="nova-fp-ano">
                                 ${Array.from({length: 16}, (_, i) => anoAtual - 10 + i).map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('')}
                             </select>
                         </div>
                         <div class="input-group">
-                            <label>Valor pago</label>
-                            <input type="number" step="0.01" id="fatura-paga-valor" inputmode="decimal" placeholder="0,00" />
+                            <label>Valor</label>
+                            <input type="number" step="0.01" id="nova-fp-valor" inputmode="decimal" placeholder="0,00" />
                         </div>
                         <div class="btn-group mt-8">
-                            <button class="btn btn-primary" id="fatura-paga-salvar">Salvar</button>
-                            <button class="btn btn-outline" id="fatura-paga-cancelar">Cancelar</button>
+                            <button class="btn btn-primary" id="nova-fp-salvar">Salvar</button>
+                            <button class="btn btn-outline" id="nova-fp-cancelar">Cancelar</button>
                         </div>
                     </div>
                 `;
                 document.body.appendChild(modal);
 
-                modal.querySelector('#fatura-paga-salvar').addEventListener('click', function() {
-                    const nome = document.getElementById('fatura-paga-cartao-nome').value.trim();
-                    const mes = parseInt(document.getElementById('fatura-paga-mes').value);
-                    const ano = parseInt(document.getElementById('fatura-paga-ano').value);
-                    const valor = parseFloat(document.getElementById('fatura-paga-valor').value) || 0;
-                    if (!nome) { toast('Nome do cartão é obrigatório.'); return; }
+                // Adicionar novo cartão
+                modal.querySelector('#nova-fp-add-cartao').addEventListener('click', function() {
+                    const novo = prompt('Nome do novo cartão:');
+                    if (novo && novo.trim()) {
+                        const nome = novo.trim();
+                        if (!data.faturas.some(f => f.nome === nome)) {
+                            data.faturas.push({ id: genId(), nome: nome });
+                            saveData();
+                            const select = document.getElementById('nova-fp-cartao');
+                            const opt = document.createElement('option');
+                            opt.value = nome;
+                            opt.textContent = nome;
+                            opt.selected = true;
+                            select.appendChild(opt);
+                            const opts = Array.from(select.options);
+                            opts.sort((a, b) => a.text.localeCompare(b.text));
+                            select.innerHTML = '';
+                            opts.forEach(o => select.appendChild(o));
+                            toast('Cartão adicionado!');
+                        } else {
+                            toast('Cartão já existe.');
+                        }
+                    }
+                });
+
+                modal.querySelector('#nova-fp-salvar').addEventListener('click', function() {
+                    const cartao = document.getElementById('nova-fp-cartao').value;
+                    const mes = parseInt(document.getElementById('nova-fp-mes').value);
+                    const ano = parseInt(document.getElementById('nova-fp-ano').value);
+                    const valor = parseFloat(document.getElementById('nova-fp-valor').value) || 0;
+                    if (!cartao) { toast('Selecione um cartão.'); return; }
                     if (valor <= 0) { toast('Valor deve ser positivo.'); return; }
                     const nova = {
                         id: genId(),
-                        nomeCartao: nome,
+                        nomeCartao: cartao,
                         mes: mes,
                         ano: ano,
                         valor: valor,
                         timestamp: nowISO()
                     };
                     data.faturasPagas.push(nova);
-                    pushUndo('Registrou pagamento de fatura ' + nome + ' (' + getMonthName(mes + '-' + ano) + ')', null, { faturaPaga: nova });
+                    pushUndo('Registrou pagamento de fatura ' + cartao + ' (' + getMonthName(mes + '-' + ano) + ')', null, { faturaPaga: nova });
                     document.body.removeChild(modal);
                     renderAll();
                 });
-                modal.querySelector('#fatura-paga-cancelar').addEventListener('click', function() {
+                modal.querySelector('#nova-fp-cancelar').addEventListener('click', function() {
                     document.body.removeChild(modal);
                 });
                 modal.addEventListener('click', function(e) {
@@ -2199,7 +2379,7 @@
                 renderAll();
                 setTimeout(processSyncQueue, 1000);
                 setInterval(processSyncQueue, 30000);
-                console.log('💰 Finanças PWA carregado (revisão 4).');
+                console.log('💰 Finanças PWA carregado (revisão 5).');
             }
 
             window.__data = data;
