@@ -62,7 +62,6 @@
             flex-direction: column;
             height: 100vh;
             height: var(--vh-real);
-            height: -webkit-fill-available;
             max-width: 480px;
             margin: 0 auto;
             background: var(--bg);
@@ -543,7 +542,7 @@
             <div class="tab-panel" data-tab="3">
                 <div class="card">
                     <div class="card-title">
-                        📆 Histórico de Faturas Pagas
+                        Histórico de Faturas Pagas
                         <button class="btn btn-sm btn-outline" id="add-fatura-paga-btn">+ Registrar Pagamento</button>
                     </div>
                     <div id="faturas-pagas-list"></div>
@@ -1703,7 +1702,7 @@
                     const nomeCartao = item.nomeCartao || 'Cartão';
                     html += `
                         <div class="fatura-paga-item">
-                            <span class="mes">${escapeHtml(nomeCartao)} · ${getMonthName(item.mes + '-' + item.ano)}</span>
+                            <span class="mes">${escapeHtml(nomeCartao)} · ${getMonthName(getMesAnoFromDate(item.ano, item.mes))}</span>
                             <span class="valor">${fmt(item.valor)}</span>
                             <div class="actions">
                                 <button class="fatura-paga-edit" data-id="${item.id}" title="Editar">✏️</button>
@@ -1910,7 +1909,7 @@
                         timestamp: nowISO()
                     };
                     data.faturasPagas.push(nova);
-                    pushUndo('Registrou pagamento de fatura ' + cartao + ' (' + getMonthName(mes + '-' + ano) + ')', null, { faturaPaga: nova });
+                    pushUndo('Registrou pagamento de fatura ' + cartao + ' (' + getMonthName(getMesAnoFromDate(ano, mes)) + ')', null, { faturaPaga: nova });
                     document.body.removeChild(modal);
                     renderAll();
                 });
