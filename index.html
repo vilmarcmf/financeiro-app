@@ -94,15 +94,6 @@
             transition: background 0.2s;
         }
         #header-actions button:active { background: rgba(255, 255, 255, 0.3); }
-        #sync-indicator {
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            font-size: 10px;
-            color: rgba(255,255,255,0.85);
-        }
 
         /* ===== TABS ===== */
         #tab-bar {
@@ -529,16 +520,8 @@
                 </div>
             </div>
 
-            <!-- ===== TAB 4: FATURAS DE CARTÃO ===== -->
+            <!-- ===== TAB 4: FATURAS (apenas histórico) ===== -->
             <div class="tab-panel" data-tab="3">
-                <div class="card">
-                    <div class="card-title">
-                        💳 Faturas de Cartão
-                        <button class="btn btn-sm btn-outline" id="add-fatura-btn">+ Adicionar</button>
-                    </div>
-                    <div class="text-muted mb-8">Digite o valor CHEIO da fatura (já inclui as parcelas daquele cartão). As parcelas da Aba 3 pagas em cartão não são somadas de novo aqui.</div>
-                    <div id="faturas-list"></div>
-                </div>
                 <div class="card">
                     <div class="card-title">
                         📆 Histórico de Faturas Pagas
@@ -655,9 +638,8 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 3)
+        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 4)
         //  Sem frameworks, sem dependências externas.
-        //  Persistência: localStorage, offline com Service Worker.
         // ================================================================
 
         (function() {
@@ -669,8 +651,6 @@
             const STORAGE_KEY = 'financas_data';
             const MAX_UNDO = 50;
             const MAX_HISTORICO_ACOES = 300;
-
-            // Campos que NUNCA entram dentro de um snapshot de undo
             const CAMPOS_FORA_DO_UNDO = ['undoStack', 'undoIndex', 'historicoAcoes', 'syncQueue'];
 
             function defaultData() {
@@ -683,15 +663,11 @@
                         { id: genId(), nome: 'NUBANK', saldo: 0 }
                     ],
                     contasFixas: [],
-                    historicoMensalCF: {}, // { '2025-01': [{id, nome, valor, pago}], ... }
-                    historicoMensalGeral: {}, // { '2025-01': { receita, totalSaldos, totalContasFixas, totalContasFixasPagas, totalFaturas, totalCaixinhas, totalParcelasRestantes, completo } }
+                    historicoMensalCF: {},
+                    historicoMensalGeral: {},
                     parcelas: [],
-                    faturas: [
-                        { id: genId(), nome: 'BTG', valor: 0 },
-                        { id: genId(), nome: 'INTER', valor: 0 },
-                        { id: genId(), nome: 'NUBANK', valor: 0 }
-                    ],
-                    faturasPagas: [], // [{id, mes, ano, valor, timestamp, nomeCartao}]
+                    faturas: [], // mantido para compatibilidade, mas não usado na UI
+                    faturasPagas: [],
                     caixinhas: [],
                     historicoAcoes: [],
                     undoStack: [],
@@ -727,6 +703,14 @@
             }
 
             function fmtDate(d) {
+                const dt = new Date(d);
+                return dt.toLocaleString('pt-BR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+            }
+
+            function fmtDateShort(d) {
                 const dt = new Date(d);
                 return dt.toLocaleString('pt-BR', {
                     day: '2-digit', month: '2-digit', year: 'numeric',
@@ -771,13 +755,6 @@
                 return getMesAnoFromDate(y, m);
             }
 
-            function sugerirAnoInicio(mesEscolhido) {
-                const hoje = new Date();
-                const mesAtualNum = hoje.getMonth() + 1;
-                const anoAtualNum = hoje.getFullYear();
-                return mesEscolhido < mesAtualNum ? anoAtualNum + 1 : anoAtualNum;
-            }
-
             function getMonthName(key) {
                 const p = parseMonthKey(key);
                 const nomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -806,6 +783,7 @@
                         if (!d.undoStack) d.undoStack = [];
                         if (d.undoIndex === undefined) d.undoIndex = -1;
                         if (!d.faturasPagas) d.faturasPagas = [];
+                        if (!d.faturas) d.faturas = [];
                         if (!d.disponivelConfig) {
                             d.disponivelConfig = {
                                 incluirReceita: true,
@@ -1078,7 +1056,6 @@
                 renderContasFixasHistorico();
                 renderParcelas();
                 renderPanorama();
-                renderFaturas();
                 renderFaturasPagas();
                 renderCaixinhas();
                 renderDashboard();
@@ -1159,6 +1136,50 @@
             }
 
             // ---------- TAB 2: CONTAS FIXAS ----------
+            // Função auxiliar para abrir modal de criação de conta fixa
+            function modalAddContaFixa() {
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay open';
+                modal.innerHTML = `
+                    <div class="modal-sheet">
+                        <div class="modal-handle"></div>
+                        <div class="modal-title">📋 Nova Conta Fixa</div>
+                        <div class="input-group">
+                            <label>Nome</label>
+                            <input type="text" id="nova-cf-nome" placeholder="Ex: Aluguel" />
+                        </div>
+                        <div class="input-group">
+                            <label>Valor</label>
+                            <input type="number" step="0.01" id="nova-cf-valor" inputmode="decimal" placeholder="0,00" />
+                        </div>
+                        <div class="btn-group mt-8">
+                            <button class="btn btn-primary" id="nova-cf-salvar">Salvar</button>
+                            <button class="btn btn-outline" id="nova-cf-cancelar">Cancelar</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                modal.querySelector('#nova-cf-salvar').addEventListener('click', function() {
+                    const nome = document.getElementById('nova-cf-nome').value.trim();
+                    const valor = parseFloat(document.getElementById('nova-cf-valor').value) || 0;
+                    if (!nome) { toast('Nome é obrigatório.'); return; }
+                    const nova = { id: genId(), nome: nome, valor: valor, pago: false };
+                    data.contasFixas.push(nova);
+                    pushUndo('Adicionou conta fixa "' + nova.nome + '"', null, { conta: nova });
+                    document.body.removeChild(modal);
+                    renderAll();
+                });
+                modal.querySelector('#nova-cf-cancelar').addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                });
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) this.remove();
+                });
+                // Foco no primeiro campo
+                setTimeout(() => document.getElementById('nova-cf-nome').focus(), 100);
+            }
+
             function renderContasFixas() {
                 const el = document.getElementById('contas-fixas-list');
                 if (!el) return;
@@ -1170,7 +1191,6 @@
                             <div class="check ${checked}" data-id="${cf.id}" style="cursor:pointer;">✓</div>
                             <div class="info">
                                 <div class="name">${escapeHtml(cf.nome)}</div>
-                                <div class="sub">${fmt(cf.valor)}</div>
                             </div>
                             <div style="display:flex;align-items:center;gap:4px;">
                                 <input type="number" step="0.01" value="${cf.valor}"
@@ -1315,7 +1335,7 @@
                     const progresso = Math.round((pagas / totalParcelas) * 100);
                     const expandido = !!parcelasExpandidas[p.id];
                     const idxMesAtual = indiceParcelaNoMes(p, mesAtual);
-                    const datas = p.parcelasPagasDatas || {};
+                    const ultMod = p.ultimaModificacao ? fmtDateShort(p.ultimaModificacao) : '';
 
                     htmlCards += `
                         <div class="card" style="margin-bottom:8px;padding:12px;background:var(--bg);">
@@ -1348,15 +1368,7 @@
                                                     font-size:12px;font-weight:600;">${idx + 1}</button>`;
                                         }).join('')}
                                     </div>
-                                    ${Object.keys(datas).length > 0 ? `
-                                        <div class="text-muted" style="font-size:11px;margin-top:8px;">
-                                            Última marcação: parcela ${(function() {
-                                                const idxs = Object.keys(datas).map(Number).sort((a, b) => (datas[b] || 0) - (datas[a] || 0));
-                                                const ultimo = idxs[0];
-                                                return (ultimo + 1) + ' em ' + fmtDate(datas[ultimo]);
-                                            })()}
-                                        </div>
-                                    ` : ''}
+                                    ${ultMod ? `<div class="text-muted" style="font-size:11px;margin-top:8px;">Última modificação: ${ultMod}</div>` : ''}
                                     <div class="flex-between mt-8">
                                         <div class="actions">
                                             <button class="parcela-edit" data-id="${p.id}" style="font-size:14px;">✏️ Editar</button>
@@ -1392,6 +1404,7 @@
                         p.parcelasPagas.splice(i, 1);
                         delete p.parcelasPagasDatas[idx];
                     }
+                    p.ultimaModificacao = nowISO();
                     pushUndo('Alterou parcela ' + (idx + 1) + ' de ' + p.descricao, { parcelasPagas: antes }, { parcelasPagas: [...p.parcelasPagas] });
                     renderAll();
                 }
@@ -1420,7 +1433,6 @@
                         const p = data.parcelas.find(x => x.id === id);
                         if (!p) return;
 
-                        // Abre modal com selects para edição
                         const modal = document.createElement('div');
                         modal.className = 'modal-overlay open';
                         modal.innerHTML = `
@@ -1487,6 +1499,7 @@
                             p.mesInicio = mes;
                             p.anoInicio = ano;
                             p.formaPagamento = forma;
+                            p.ultimaModificacao = nowISO();
                             pushUndo('Editou compra parcelada "' + antes.descricao + '"', { ...antes }, { ...p });
                             document.body.removeChild(modal);
                             renderAll();
@@ -1522,7 +1535,6 @@
                     return;
                 }
                 const mapa = {};
-                const anoAtual = new Date().getFullYear();
                 data.parcelas.forEach(p => {
                     let mes = p.mesInicio || 1;
                     let ano = p.anoInicio || anoAtual;
@@ -1549,72 +1561,7 @@
                 el.innerHTML = html;
             }
 
-            // ---------- TAB 4: FATURAS ----------
-            function renderFaturas() {
-                const el = document.getElementById('faturas-list');
-                if (!el) return;
-                let html = '';
-                data.faturas.forEach((f) => {
-                    html += `
-                        <div class="list-item" data-id="${f.id}">
-                            <div class="info"><div class="name">${escapeHtml(f.nome)}</div></div>
-                            <div style="display:flex;align-items:center;gap:6px;">
-                                <input type="number" step="0.01" value="${f.valor}"
-                                       class="fatura-valor-input" data-id="${f.id}"
-                                       inputmode="decimal"
-                                       style="width:100px;padding:6px 8px;background:var(--bg);border-radius:8px;text-align:right;font-size:14px;"/>
-                                <div class="actions">
-                                    <button class="fatura-rename" data-id="${f.id}" title="Renomear">✏️</button>
-                                    <button class="fatura-delete danger" data-id="${f.id}" title="Excluir">✕</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                el.innerHTML = html || '<div class="empty-state"><div class="icon">💳</div>Nenhuma fatura cadastrada.</div>';
-
-                el.querySelectorAll('.fatura-valor-input').forEach(inp => {
-                    inp.addEventListener('change', function() {
-                        const id = this.dataset.id;
-                        const val = parseFloat(this.value) || 0;
-                        const f = data.faturas.find(x => x.id === id);
-                        if (f) {
-                            const antes = f.valor;
-                            f.valor = val;
-                            pushUndo('Alterou fatura ' + f.nome + ' para ' + fmt(val), { valor: antes }, { valor: val });
-                            renderAll();
-                        }
-                    });
-                });
-                el.querySelectorAll('.fatura-rename').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const id = this.dataset.id;
-                        const f = data.faturas.find(x => x.id === id);
-                        if (!f) return;
-                        const novo = prompt('Novo nome para "' + f.nome + '":', f.nome);
-                        if (novo && novo.trim()) {
-                            const antes = f.nome;
-                            f.nome = novo.trim();
-                            pushUndo('Renomeou fatura "' + antes + '"', { nome: antes }, { nome: f.nome });
-                            renderAll();
-                        }
-                    });
-                });
-                el.querySelectorAll('.fatura-delete').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const id = this.dataset.id;
-                        const f = data.faturas.find(x => x.id === id);
-                        if (!f) return;
-                        if (!confirm('Excluir fatura "' + f.nome + '"?')) return;
-                        const antes = data.faturas.map(x => ({ ...x }));
-                        data.faturas = data.faturas.filter(x => x.id !== id);
-                        pushUndo('Excluiu fatura "' + f.nome + '"', { faturas: antes }, { faturas: data.faturas.map(x => ({ ...x })) });
-                        renderAll();
-                    });
-                });
-            }
-
-            // ---------- FATURAS PAGAS ----------
+            // ---------- TAB 4: FATURAS PAGAS ----------
             function renderFaturasPagas() {
                 const el = document.getElementById('faturas-pagas-list');
                 if (!el) return;
@@ -1624,12 +1571,12 @@
                     return;
                 }
                 let html = '';
-                // ordenar por data decrescente
                 const sorted = [...items].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 for (const item of sorted) {
+                    const nomeCartao = item.nomeCartao || 'Cartão';
                     html += `
                         <div class="fatura-paga-item">
-                            <span class="mes">${item.nomeCartao || 'Cartão'} · ${getMonthName(item.mes + '-' + item.ano)}</span>
+                            <span class="mes">${escapeHtml(nomeCartao)} · ${getMonthName(item.mes + '-' + item.ano)}</span>
                             <span class="valor">${fmt(item.valor)}</span>
                             <button class="fatura-paga-delete" data-id="${item.id}" style="color:var(--danger);font-size:14px;">✕</button>
                         </div>
@@ -1649,7 +1596,6 @@
             }
 
             document.getElementById('add-fatura-paga-btn')?.addEventListener('click', function() {
-                // Modal para registrar pagamento
                 const modal = document.createElement('div');
                 modal.className = 'modal-overlay open';
                 modal.innerHTML = `
@@ -1657,10 +1603,8 @@
                         <div class="modal-handle"></div>
                         <div class="modal-title">📆 Registrar Pagamento de Fatura</div>
                         <div class="input-group">
-                            <label>Cartão</label>
-                            <select id="fatura-paga-cartao">
-                                ${data.faturas.map(f => `<option value="${f.id}">${escapeHtml(f.nome)}</option>`).join('')}
-                            </select>
+                            <label>Nome do Cartão</label>
+                            <input type="text" id="fatura-paga-cartao-nome" placeholder="Ex: Nubank" />
                         </div>
                         <div class="input-group">
                             <label>Mês</label>
@@ -1687,23 +1631,22 @@
                 document.body.appendChild(modal);
 
                 modal.querySelector('#fatura-paga-salvar').addEventListener('click', function() {
-                    const cartaoId = document.getElementById('fatura-paga-cartao').value;
+                    const nome = document.getElementById('fatura-paga-cartao-nome').value.trim();
                     const mes = parseInt(document.getElementById('fatura-paga-mes').value);
                     const ano = parseInt(document.getElementById('fatura-paga-ano').value);
                     const valor = parseFloat(document.getElementById('fatura-paga-valor').value) || 0;
+                    if (!nome) { toast('Nome do cartão é obrigatório.'); return; }
                     if (valor <= 0) { toast('Valor deve ser positivo.'); return; }
-                    const cartao = data.faturas.find(f => f.id === cartaoId);
-                    if (!cartao) { toast('Cartão não encontrado.'); return; }
                     const nova = {
                         id: genId(),
-                        nomeCartao: cartao.nome,
+                        nomeCartao: nome,
                         mes: mes,
                         ano: ano,
                         valor: valor,
                         timestamp: nowISO()
                     };
                     data.faturasPagas.push(nova);
-                    pushUndo('Registrou pagamento de fatura ' + cartao.nome + ' (' + getMonthName(mes + '-' + ano) + ')', null, { faturaPaga: nova });
+                    pushUndo('Registrou pagamento de fatura ' + nome + ' (' + getMonthName(mes + '-' + ano) + ')', null, { faturaPaga: nova });
                     document.body.removeChild(modal);
                     renderAll();
                 });
@@ -1716,6 +1659,47 @@
             });
 
             // ---------- TAB 5: CAIXINHAS ----------
+            function modalAddCaixinha() {
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay open';
+                modal.innerHTML = `
+                    <div class="modal-sheet">
+                        <div class="modal-handle"></div>
+                        <div class="modal-title">🐷 Nova Caixinha</div>
+                        <div class="input-group">
+                            <label>Nome</label>
+                            <input type="text" id="nova-cx-nome" placeholder="Ex: Viagem" />
+                        </div>
+                        <div class="input-group">
+                            <label>Meta (opcional, 0 para nenhuma)</label>
+                            <input type="number" step="0.01" id="nova-cx-meta" inputmode="decimal" placeholder="0,00" />
+                        </div>
+                        <div class="btn-group mt-8">
+                            <button class="btn btn-primary" id="nova-cx-salvar">Salvar</button>
+                            <button class="btn btn-outline" id="nova-cx-cancelar">Cancelar</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                modal.querySelector('#nova-cx-salvar').addEventListener('click', function() {
+                    const nome = document.getElementById('nova-cx-nome').value.trim();
+                    const meta = parseFloat(document.getElementById('nova-cx-meta').value) || 0;
+                    if (!nome) { toast('Nome é obrigatório.'); return; }
+                    const nova = { id: genId(), nome: nome, meta: meta, saldo: 0, historico: [] };
+                    data.caixinhas.push(nova);
+                    pushUndo('Adicionou caixinha "' + nova.nome + '"', null, { caixinha: nova });
+                    document.body.removeChild(modal);
+                    renderAll();
+                });
+                modal.querySelector('#nova-cx-cancelar').addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                });
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) this.remove();
+                });
+            }
+
             function renderCaixinhas() {
                 const el = document.getElementById('caixinhas-list');
                 if (!el) return;
@@ -1820,9 +1804,8 @@
                     const restantes = total - pagas;
                     return s + (p.valorParcela || 0) * restantes;
                 }, 0);
-                const totalFaturas = data.faturas.reduce((s, f) => s + f.valor, 0);
-                const totalCaixinhas = data.caixinhas.reduce((s, c) => s + c.saldo, 0);
                 const totalFaturasPagas = data.faturasPagas.reduce((s, f) => s + f.valor, 0);
+                const totalCaixinhas = data.caixinhas.reduce((s, c) => s + c.saldo, 0);
 
                 el.innerHTML = `
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -1842,10 +1825,6 @@
                         <div style="background:var(--bg);padding:10px;border-radius:10px;text-align:center;">
                             <div style="font-size:11px;color:var(--text-secondary);">Parcelas restantes</div>
                             <div style="font-weight:700;font-size:18px;">${fmt(totalParcelas)}</div>
-                        </div>
-                        <div style="background:var(--bg);padding:10px;border-radius:10px;text-align:center;">
-                            <div style="font-size:11px;color:var(--text-secondary);">Faturas (abertas)</div>
-                            <div style="font-weight:700;font-size:18px;">${fmt(totalFaturas)}</div>
                         </div>
                         <div style="background:var(--bg);padding:10px;border-radius:10px;text-align:center;">
                             <div style="font-size:11px;color:var(--text-secondary);">Faturas pagas (total)</div>
@@ -1904,8 +1883,6 @@
                     saldo -= totalCF;
                     detalhes.push({ label: 'Contas Fixas', valor: -totalCF });
                 }
-
-                // Faturas NÃO entram no cálculo (removido a pedido)
 
                 if (data.disponivelConfig.incluirParcelasBoleto !== false) {
                     let totalParc = 0;
@@ -2031,19 +2008,9 @@
                 }
             });
 
-            document.getElementById('add-conta-fixa-btn')?.addEventListener('click', function() {
-                const nome = prompt('Nome da conta fixa:');
-                if (!nome || !nome.trim()) return;
-                const valor = prompt('Valor:', '0');
-                const val = parseFloat(valor) || 0;
-                const nova = { id: genId(), nome: nome.trim(), valor: val, pago: false };
-                data.contasFixas.push(nova);
-                pushUndo('Adicionou conta fixa "' + nova.nome + '"', null, { conta: nova });
-                renderAll();
-            });
+            document.getElementById('add-conta-fixa-btn')?.addEventListener('click', modalAddContaFixa);
 
             document.getElementById('add-parcela-btn')?.addEventListener('click', function() {
-                // Usa modal com selects
                 const modal = document.createElement('div');
                 modal.className = 'modal-overlay open';
                 modal.innerHTML = `
@@ -2113,7 +2080,8 @@
                         anoInicio: ano,
                         formaPagamento: forma,
                         parcelasPagas: [],
-                        parcelasPagasDatas: {}
+                        parcelasPagasDatas: {},
+                        ultimaModificacao: nowISO()
                     };
                     data.parcelas.push(nova);
                     pushUndo('Adicionou compra "' + nova.descricao + '"', null, { parcela: nova });
@@ -2128,27 +2096,7 @@
                 });
             });
 
-            document.getElementById('add-fatura-btn')?.addEventListener('click', function() {
-                const nome = prompt('Nome do cartão:');
-                if (!nome || !nome.trim()) return;
-                const valor = prompt('Valor da fatura:', '0');
-                const val = parseFloat(valor) || 0;
-                const nova = { id: genId(), nome: nome.trim(), valor: val };
-                data.faturas.push(nova);
-                pushUndo('Adicionou fatura "' + nova.nome + '"', null, { fatura: nova });
-                renderAll();
-            });
-
-            document.getElementById('add-caixinha-btn')?.addEventListener('click', function() {
-                const nome = prompt('Nome da caixinha:');
-                if (!nome || !nome.trim()) return;
-                const meta = prompt('Meta (opcional, 0 para nenhuma):', '0');
-                const metaVal = parseFloat(meta) || 0;
-                const nova = { id: genId(), nome: nome.trim(), meta: metaVal, saldo: 0, historico: [] };
-                data.caixinhas.push(nova);
-                pushUndo('Adicionou caixinha "' + nova.nome + '"', null, { caixinha: nova });
-                renderAll();
-            });
+            document.getElementById('add-caixinha-btn')?.addEventListener('click', modalAddCaixinha);
 
             document.getElementById('btn-history')?.addEventListener('click', function() {
                 document.getElementById('modal-history').classList.add('open');
@@ -2251,10 +2199,10 @@
                 renderAll();
                 setTimeout(processSyncQueue, 1000);
                 setInterval(processSyncQueue, 30000);
-                console.log('💰 Finanças PWA carregado (revisão 3).');
+                console.log('💰 Finanças PWA carregado (revisão 4).');
             }
 
-            window.__data = data; // debug
+            window.__data = data;
 
             init();
 
