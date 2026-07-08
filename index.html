@@ -2212,7 +2212,7 @@
                         <div class="input-group">
                             <label>Mês da 1ª cobrança</label>
                             <select id="nova-parcela-mes">
-                                ${Array.from({length: 12}, (_, i) => i+1).map(m => `<option value="${m}" ${m === new Date().getMonth()+1 ? 'selected' : ''}>${m}</option>`).join('')}
+                                ${Array.from({length: 12}, (_, i) => i+1).map(m => `<option value="${m}" ${m === new Date().getMonth()+2 ? 'selected' : ''}>${m}</option>`).join('')}
                             </select>
                         </div>
                         <div class="input-group">
