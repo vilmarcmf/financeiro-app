@@ -10,6 +10,7 @@
     <link rel="apple-touch-icon" href="icon-192.png" />
     <title>Minhas Finanças</title>
     <style>
+        /* ===== RESET & BASE ===== */
         * {
             margin: 0;
             padding: 0;
@@ -56,6 +57,7 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
 
+        /* ===== LAYOUT ===== */
         #app {
             display: flex;
             flex-direction: column;
@@ -96,6 +98,7 @@
         }
         #header-actions button:active { background: rgba(255, 255, 255, 0.3); }
 
+        /* ===== TABS ===== */
         #tab-bar {
             flex-shrink: 0;
             height: var(--tab-height);
@@ -130,6 +133,7 @@
         .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
         .tab-btn:active { opacity: 0.6; }
 
+        /* ===== CONTENT ===== */
         #content {
             flex: 1;
             min-height: 0;
@@ -146,6 +150,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* ===== CARDS ===== */
         .card {
             background: var(--card);
             border-radius: var(--radius);
@@ -170,6 +175,7 @@
             border-radius: 20px;
         }
 
+        /* ===== FORM ELEMENTS ===== */
         .input-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
         .input-group label {
             font-size: 12px;
@@ -194,6 +200,7 @@
         .input-group input[type="number"]::-webkit-outer-spin-button,
         .input-group input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
+        /* ===== BUTTONS ===== */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -219,6 +226,7 @@
         .btn-block { width: 100%; justify-content: center; }
         .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
 
+        /* ===== LIST ITEMS ===== */
         .list-item {
             display: flex;
             align-items: center;
@@ -272,6 +280,7 @@
         }
         .list-item .check.checked { background: var(--success); border-color: var(--success); color: #fff; }
 
+        /* ===== TOGGLE ===== */
         .toggle-wrap { display: flex; align-items: center; gap: 10px; cursor: pointer; }
         .toggle-track {
             width: 44px;
@@ -297,6 +306,7 @@
         .toggle-track.on { background: var(--primary); }
         .toggle-track.on::after { transform: translateX(18px); }
 
+        /* ===== MODAL ===== */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -325,6 +335,7 @@
         .modal-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto 16px; }
         .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
 
+        /* ===== HISTORY ===== */
         .history-item {
             font-size: 13px;
             padding: 6px 0;
@@ -336,6 +347,7 @@
         .history-item .h-time { color: var(--text-secondary); font-size: 11px; white-space: nowrap; min-width: 60px; }
         .history-item .h-desc { flex: 1; word-break: break-word; }
 
+        /* ===== MISC ===== */
         .text-center { text-align: center; }
         .text-muted { color: var(--text-secondary); font-size: 13px; }
         .mt-8 { margin-top: 8px; }
@@ -369,6 +381,7 @@
             #app { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
         }
 
+        /* ===== TOAST ===== */
         .toast {
             position: fixed;
             bottom: 80px;
@@ -389,12 +402,14 @@
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+        /* ===== PROGRESS BAR ===== */
         .progress-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-top: 4px; }
         .progress-bar .fill { height: 100%; border-radius: 3px; background: var(--primary); transition: width 0.3s; }
         .progress-bar .fill.green { background: var(--success); }
         .progress-bar .fill.red { background: var(--danger); }
         .progress-bar .fill.yellow { background: var(--warning); }
 
+        /* ===== SCROLLABLE TABLE ===== */
         .scroll-table { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; padding: 0 4px; }
         .scroll-table table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 300px; }
         .scroll-table th {
@@ -411,6 +426,7 @@
         .scroll-table tr:last-child td { border-bottom: none; }
         .scroll-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 
+        /* ===== CONFIG ===== */
         .config-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
         .config-row label { font-size: 13px; font-weight: 500; }
         .config-row input {
@@ -422,6 +438,7 @@
         }
         .config-row input:focus { border-color: var(--primary); background: #fff; }
 
+        /* ===== FATURAS (usado apenas no modal de edição, mas mantido) ===== */
         .fatura-paga-item {
             display: flex;
             align-items: center;
@@ -472,7 +489,7 @@
 
         <!-- HEADER -->
         <header id="header">
-            <h1>Minhas Finanças</h1>
+            <h1>💰 Minhas Finanças</h1>
             <div id="header-actions">
                 <button id="btn-history" aria-label="Histórico" title="Histórico">📜</button>
                 <button id="btn-config" aria-label="Configurações" title="Configurações">⚙️</button>
@@ -641,10 +658,9 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 7)
-        //  Corrigido: NaN em Faturas no histórico mensal
-        //  Corrigido: dimensionamento em modo standalone no iOS
-        //  Adicionado: evolução mensal de contas e caixinhas (só na planilha)
+        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 10)
+        //  Adicionado: forma de pagamento no resumo de parcelas do mês
+        //  Adicionado: toggles para parcelas de cartão no saldo disponível
         // ================================================================
 
         (function() {
@@ -691,6 +707,8 @@
                         incluirReceita: true,
                         incluirContasFixas: true,
                         incluirParcelasBoleto: true,
+                        incluirParcelasCartaoMesAtual: false,
+                        incluirParcelasCartaoMesSeguinte: false,
                         excluirContaFixa: {},
                         excluirParcela: {}
                     }
@@ -746,6 +764,12 @@
                 return getMesAno();
             }
 
+            function getNextMonthKey() {
+                const d = new Date();
+                d.setMonth(d.getMonth() + 1);
+                return getMesAno(d);
+            }
+
             function parseMonthKey(key) {
                 const parts = key.split('-');
                 return { year: parseInt(parts[0]), month: parseInt(parts[1]) };
@@ -781,7 +805,6 @@
             }
 
             // Retorna tempo relativo legível ("há 2 dias", "há 3 horas", "agora")
-            // a partir de uma string ISO ou null. Se não houver dado, retorna ''.
             function tempoRelativo(isoString) {
                 if (!isoString) return '';
                 const diff = Date.now() - new Date(isoString).getTime();
@@ -794,6 +817,34 @@
                 if (dias < 30) return 'há ' + dias + (dias === 1 ? ' dia' : ' dias');
                 const meses = Math.floor(dias / 30);
                 return 'há ' + meses + (meses === 1 ? ' mês' : ' meses');
+            }
+
+            // Retorna se a forma de pagamento é cartão
+            function isCartao(forma) {
+                const f = (forma || '').toLowerCase();
+                return f.indexOf('cartao') !== -1 || f.indexOf('btg') !== -1 || f.indexOf('inter') !== -1 || f.indexOf('nubank') !== -1;
+            }
+
+            // Retorna o valor total das parcelas de cartão que caem em um determinado mês
+            function totalParcelasCartaoNoMes(mesKey) {
+                let total = 0;
+                data.parcelas.forEach(p => {
+                    if (!isCartao(p.formaPagamento)) return;
+                    if (data.disponivelConfig.excluirParcela && data.disponivelConfig.excluirParcela[p.id]) return;
+                    let mes = p.mesInicio || 1;
+                    let ano = p.anoInicio || new Date().getFullYear();
+                    const num = p.numParcelas || 1;
+                    for (let i = 0; i < num; i++) {
+                        const key = getMesAnoFromDate(ano, mes);
+                        if (key === mesKey) {
+                            total += p.valorParcela || 0;
+                            break; // cada compra tem apenas uma parcela por mês
+                        }
+                        mes++;
+                        if (mes > 12) { mes = 1; ano++; }
+                    }
+                });
+                return total;
             }
 
             // --------------------------------------------------------------
@@ -819,24 +870,26 @@
                                 { id: genId(), nome: 'NUBANK', valor: 0, pago: false }
                             ];
                         } else {
-                            // Migração: versões anteriores só tinham {id, nome} nas
-                            // faturas (o valor morava num log separado, faturasPagas,
-                            // que não existe mais). Garante que cartões antigos
-                            // ganhem os campos novos sem perder o cadastro.
                             d.faturas.forEach(f => {
                                 if (f.valor === undefined) f.valor = 0;
                                 if (f.pago === undefined) f.pago = false;
                             });
                         }
-                        delete d.faturasPagas; // campo antigo, não é mais usado
+                        delete d.faturasPagas;
                         if (!d.disponivelConfig) {
                             d.disponivelConfig = {
                                 incluirReceita: true,
                                 incluirContasFixas: true,
                                 incluirParcelasBoleto: true,
+                                incluirParcelasCartaoMesAtual: false,
+                                incluirParcelasCartaoMesSeguinte: false,
                                 excluirContaFixa: {},
                                 excluirParcela: {}
                             };
+                        } else {
+                            // Garantir novos campos
+                            if (d.disponivelConfig.incluirParcelasCartaoMesAtual === undefined) d.disponivelConfig.incluirParcelasCartaoMesAtual = false;
+                            if (d.disponivelConfig.incluirParcelasCartaoMesSeguinte === undefined) d.disponivelConfig.incluirParcelasCartaoMesSeguinte = false;
                         }
                         if (!d.syncQueue) d.syncQueue = [];
                         if (!d.ultimoMesVerificado) d.ultimoMesVerificado = '';
@@ -1094,8 +1147,6 @@
                     }));
                 }
 
-                // Mesmo princípio das contas fixas: arquiva o cartão + valor +
-                // se foi pago naquele mês, antes de zerar o check.
                 if (!data.historicoMensalFaturas[mesKey]) {
                     data.historicoMensalFaturas[mesKey] = data.faturas.map(f => ({
                         id: f.id,
@@ -1124,13 +1175,8 @@
                 if (!data.historicoMensalGeral[mesKey]) {
                     const totalCF = data.contasFixas.reduce((s, c) => s + c.valor, 0);
                     const pagasCF = completo ? data.contasFixas.filter(c => c.pago).reduce((s, c) => s + c.valor, 0) : 0;
-
-                    // [CORRIGIDO] Faturas agora seguem o mesmo padrão confiável de
-                    // Contas Fixas: soma direta de data.faturas.valor, sem depender
-                    // de um log externo (faturasPagas) que já causou bugs antes.
                     const totalFaturas = data.faturas.reduce((s, f) => s + (f.valor || 0), 0);
                     const totalFaturasPagas = completo ? data.faturas.filter(f => f.pago).reduce((s, f) => s + (f.valor || 0), 0) : 0;
-
                     const totalParcelasRestantes = completo ? data.parcelas.reduce((s, p) => {
                         const total = p.numParcelas || 1;
                         const pagas = (p.parcelasPagas || []).length;
@@ -1179,9 +1225,9 @@
                 if (!el) return;
                 let html = '';
                 data.contas.forEach((c) => {
-                    const selo = c.ultimaAtualizacao
-                        ? `<span style="font-size:10px;color:var(--text-secondary);margin-left:4px;">${tempoRelativo(c.ultimaAtualizacao)}</span>`
-                        : '';
+                    const selo = c.ultimaAtualizacao ?
+                        `<span style="font-size:10px;color:var(--text-secondary);margin-left:4px;">${tempoRelativo(c.ultimaAtualizacao)}</span>` :
+                        '';
                     html += `
                         <div class="list-item" data-id="${c.id}">
                             <div class="info">
@@ -1422,12 +1468,6 @@
                 });
             }
 
-            // Observação: o histórico mensal detalhado de contas fixas
-            // (data.historicoMensalCF) não tem mais card próprio aqui —
-            // a mesma informação, em forma agregada, já está na tabela de
-            // Evolução Mensal do Dashboard. O detalhe item a item continua
-            // sendo sincronizado para a planilha (aba EvolucaoMensal).
-
             // ---------- TAB 3: PARCELAS ----------
             function indiceParcelaNoMes(p, mesAnoAlvo) {
                 let mes = p.mesInicio || 1;
@@ -1458,12 +1498,13 @@
                 } else {
                     doMes.forEach(({ p, idx }) => {
                         const isPaga = (p.parcelasPagas || []).includes(idx);
+                        const forma = p.formaPagamento || '';
                         htmlResumo += `
                             <div class="list-item" data-id="${p.id}" data-idx="${idx}">
                                 <div class="check resumo-check ${isPaga ? 'checked' : ''}" data-id="${p.id}" data-idx="${idx}" style="cursor:pointer;">✓</div>
                                 <div class="info">
                                     <div class="name">${escapeHtml(p.descricao || 'Sem descrição')}</div>
-                                    <div class="sub">Parcela ${idx + 1}/${p.numParcelas} · ${fmt(p.valorParcela)}</div>
+                                    <div class="sub">Parcela ${idx + 1}/${p.numParcelas} · ${fmt(p.valorParcela)} · ${escapeHtml(forma)}</div>
                                 </div>
                             </div>
                         `;
@@ -1704,23 +1745,19 @@
             }
 
             // ---------- TAB 4: FATURAS DO MES ----------
-            // Mesmo padrao de Contas Fixas: cartao persiste, valor persiste
-            // (voce so atualiza quando muda), o check "pago" zera sozinho
-            // todo mes. Sem log de historico aqui - a evolucao mes a mes
-            // fica so na planilha (historicoMensalFaturas), igual as outras.
             function modalAddFatura() {
                 const modal = document.createElement('div');
                 modal.className = 'modal-overlay open';
                 modal.innerHTML = `
                     <div class="modal-sheet">
                         <div class="modal-handle"></div>
-                        <div class="modal-title">\ud83d\udcb3 Novo Cartao</div>
+                        <div class="modal-title">💳 Novo Cartão</div>
                         <div class="input-group">
-                            <label>Nome do cartao</label>
+                            <label>Nome do cartão</label>
                             <input type="text" id="nova-fat-nome" placeholder="Ex: BTG" />
                         </div>
                         <div class="input-group">
-                            <label>Valor deste mes</label>
+                            <label>Valor deste mês</label>
                             <input type="number" step="0.01" id="nova-fat-valor" inputmode="decimal" placeholder="0,00" />
                         </div>
                         <div class="btn-group mt-8">
@@ -1734,10 +1771,10 @@
                 modal.querySelector('#nova-fat-salvar').addEventListener('click', function() {
                     const nome = document.getElementById('nova-fat-nome').value.trim();
                     const valor = parseFloat(document.getElementById('nova-fat-valor').value) || 0;
-                    if (!nome) { toast('Nome e obrigatorio.'); return; }
+                    if (!nome) { toast('Nome é obrigatório.'); return; }
                     const nova = { id: genId(), nome: nome, valor: valor, pago: false };
                     data.faturas.push(nova);
-                    pushUndo('Adicionou cartao "' + nova.nome + '"', null, { fatura: nova });
+                    pushUndo('Adicionou cartão "' + nova.nome + '"', null, { fatura: nova });
                     document.body.removeChild(modal);
                     renderAll();
                 });
@@ -1758,7 +1795,7 @@
                     const checked = f.pago ? 'checked' : '';
                     html += `
                         <div class="list-item" data-id="${f.id}">
-                            <div class="check ${checked}" data-id="${f.id}" style="cursor:pointer;">\u2713</div>
+                            <div class="check ${checked}" data-id="${f.id}" style="cursor:pointer;">✓</div>
                             <div class="info"><div class="name">${escapeHtml(f.nome)}</div></div>
                             <div style="display:flex;align-items:center;gap:4px;">
                                 <input type="number" step="0.01" value="${f.valor || 0}"
@@ -1766,14 +1803,14 @@
                                        inputmode="decimal"
                                        style="width:90px;padding:6px 8px;background:var(--bg);border-radius:8px;text-align:right;font-size:14px;"/>
                                 <div class="actions">
-                                    <button class="fat-rename" data-id="${f.id}" title="Renomear">\u270f\ufe0f</button>
-                                    <button class="fat-delete danger" data-id="${f.id}" title="Excluir">\u2715</button>
+                                    <button class="fat-rename" data-id="${f.id}" title="Renomear">✏️</button>
+                                    <button class="fat-delete danger" data-id="${f.id}" title="Excluir">✕</button>
                                 </div>
                             </div>
                         </div>
                     `;
                 });
-                el.innerHTML = html || '<div class="empty-state"><div class="icon">\ud83d\udcb3</div>Nenhum cartao cadastrado.</div>';
+                el.innerHTML = html || '<div class="empty-state"><div class="icon">💳</div>Nenhum cartão cadastrado.</div>';
 
                 el.querySelectorAll('.check').forEach(el2 => {
                     el2.addEventListener('click', function() {
@@ -1782,7 +1819,7 @@
                         if (!f) return;
                         const antes = f.pago;
                         f.pago = !f.pago;
-                        pushUndo('Marcou fatura ' + f.nome + ' como ' + (f.pago ? 'paga' : 'nao paga'), { pago: antes }, { pago: f.pago });
+                        pushUndo('Marcou fatura ' + f.nome + ' como ' + (f.pago ? 'paga' : 'não paga'), { pago: antes }, { pago: f.pago });
                         renderAll();
                     });
                 });
@@ -1808,7 +1845,7 @@
                         if (novo && novo.trim()) {
                             const antes = f.nome;
                             f.nome = novo.trim();
-                            pushUndo('Renomeou cartao "' + antes + '"', { nome: antes }, { nome: f.nome });
+                            pushUndo('Renomeou cartão "' + antes + '"', { nome: antes }, { nome: f.nome });
                             renderAll();
                         }
                     });
@@ -1818,10 +1855,10 @@
                         const id = this.dataset.id;
                         const f = data.faturas.find(x => x.id === id);
                         if (!f) return;
-                        if (!confirm('Excluir cartao "' + f.nome + '"?')) return;
+                        if (!confirm('Excluir cartão "' + f.nome + '"?')) return;
                         const antes = data.faturas.map(x => ({ ...x }));
                         data.faturas = data.faturas.filter(x => x.id !== id);
-                        pushUndo('Excluiu cartao "' + f.nome + '"', { faturas: antes }, { faturas: data.faturas.map(x => ({ ...x })) });
+                        pushUndo('Excluiu cartão "' + f.nome + '"', { faturas: antes }, { faturas: data.faturas.map(x => ({ ...x })) });
                         renderAll();
                     });
                 });
@@ -2039,7 +2076,7 @@
                 evolEl.innerHTML = evolHtml;
             }
 
-            // ---------- TAB 7: SALDO DISPONÍVEL (sem faturas) ----------
+            // ---------- TAB 1 (parte): SALDO DISPONÍVEL ----------
             function renderSaldoDisponivel() {
                 const el = document.getElementById('saldo-disponivel-detalhe');
                 const totalEl = document.getElementById('saldo-disponivel-total');
@@ -2084,6 +2121,26 @@
                     detalhes.push({ label: 'Parcelas do mês (boleto/carnê)', valor: -totalParc });
                 }
 
+                // Parcelas cartão mês atual
+                if (data.disponivelConfig.incluirParcelasCartaoMesAtual !== false) {
+                    const mesAtual = getCurrentMonthKey();
+                    const totalCartaoMes = totalParcelasCartaoNoMes(mesAtual);
+                    if (totalCartaoMes > 0) {
+                        saldo -= totalCartaoMes;
+                        detalhes.push({ label: 'Parcelas cartão (mês atual)', valor: -totalCartaoMes });
+                    }
+                }
+
+                // Parcelas cartão mês seguinte
+                if (data.disponivelConfig.incluirParcelasCartaoMesSeguinte !== false) {
+                    const mesSeguinte = getNextMonthKey();
+                    const totalCartaoSeg = totalParcelasCartaoNoMes(mesSeguinte);
+                    if (totalCartaoSeg > 0) {
+                        saldo -= totalCartaoSeg;
+                        detalhes.push({ label: 'Parcelas cartão (mês seguinte)', valor: -totalCartaoSeg });
+                    }
+                }
+
                 let html = '';
                 for (const d of detalhes) {
                     const cor = d.valor >= 0 ? 'var(--success)' : 'var(--danger)';
@@ -2101,6 +2158,7 @@
                 el.innerHTML = html || '<div class="text-muted">Nenhum dado para calcular.</div>';
                 if (totalEl) totalEl.textContent = fmt(saldo);
 
+                // Opções (toggles)
                 if (opcoesEl) {
                     opcoesEl.innerHTML = `
                         <div class="toggle-wrap" style="margin-bottom:6px;">
@@ -2114,6 +2172,14 @@
                         <div class="toggle-wrap" style="margin-bottom:6px;">
                             <div class="toggle-track ${data.disponivelConfig.incluirParcelasBoleto !== false ? 'on' : ''}" data-key="incluirParcelasBoleto"></div>
                             <span>Incluir Parcelas (boleto/carnê)</span>
+                        </div>
+                        <div class="toggle-wrap" style="margin-bottom:6px;">
+                            <div class="toggle-track ${data.disponivelConfig.incluirParcelasCartaoMesAtual !== false ? 'on' : ''}" data-key="incluirParcelasCartaoMesAtual"></div>
+                            <span>Incluir Parcelas de Cartão (mês atual)</span>
+                        </div>
+                        <div class="toggle-wrap" style="margin-bottom:6px;">
+                            <div class="toggle-track ${data.disponivelConfig.incluirParcelasCartaoMesSeguinte !== false ? 'on' : ''}" data-key="incluirParcelasCartaoMesSeguinte"></div>
+                            <span>Incluir Parcelas de Cartão (mês seguinte)</span>
                         </div>
                         <div class="text-muted" style="font-size:12px;margin-top:8px;">
                             💡 As faturas de cartão <strong>não</strong> entram neste cálculo.
@@ -2377,7 +2443,7 @@
                 renderAll();
                 setTimeout(processSyncQueue, 1000);
                 setInterval(processSyncQueue, 30000);
-                console.log('💰 Finanças PWA carregado (revisão 9) — dvh nativo, faturas simplificadas, abas unificadas.');
+                console.log('💰 Finanças PWA carregado (revisão 10) — resumo parcelas com forma, toggles de cartão no saldo disponível.');
             }
 
             window.__data = data;
@@ -2385,7 +2451,7 @@
             init();
 
             // --------------------------------------------------------------
-            // 12. SERVICE WORKER
+            // 11. SERVICE WORKER
             // --------------------------------------------------------------
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('sw.js')
