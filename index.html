@@ -658,9 +658,8 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 10)
-        //  Adicionado: forma de pagamento no resumo de parcelas do mês
-        //  Adicionado: toggles para parcelas de cartão no saldo disponível
+        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 11)
+        //  Corrigido: parcelas pagas NÃO entram no saldo disponível
         // ================================================================
 
         (function() {
@@ -825,24 +824,44 @@
                 return f.indexOf('cartao') !== -1 || f.indexOf('btg') !== -1 || f.indexOf('inter') !== -1 || f.indexOf('nubank') !== -1;
             }
 
-            // Retorna o valor total das parcelas de cartão que caem em um determinado mês
-            function totalParcelasCartaoNoMes(mesKey) {
+            // Retorna o total das parcelas NÃO PAGAS de um determinado tipo (boleto ou cartão) em um mês específico.
+            // tipo: 'boleto' ou 'cartao'
+            function totalParcelasNaoPagasNoMes(mesKey, tipo) {
                 let total = 0;
                 data.parcelas.forEach(p => {
-                    if (!isCartao(p.formaPagamento)) return;
+                    // Verifica se a parcela está excluída manualmente
                     if (data.disponivelConfig.excluirParcela && data.disponivelConfig.excluirParcela[p.id]) return;
+
+                    const forma = (p.formaPagamento || '').toLowerCase();
+                    let ehTipo = false;
+                    if (tipo === 'boleto') {
+                        ehTipo = forma.indexOf('boleto') !== -1 || forma.indexOf('carn') !== -1;
+                    } else if (tipo === 'cartao') {
+                        ehTipo = isCartao(forma);
+                    }
+                    if (!ehTipo) return;
+
+                    // Descobre qual é o índice da parcela que cai neste mês
                     let mes = p.mesInicio || 1;
                     let ano = p.anoInicio || new Date().getFullYear();
                     const num = p.numParcelas || 1;
+                    let idxParcela = -1;
                     for (let i = 0; i < num; i++) {
                         const key = getMesAnoFromDate(ano, mes);
                         if (key === mesKey) {
-                            total += p.valorParcela || 0;
-                            break; // cada compra tem apenas uma parcela por mês
+                            idxParcela = i;
+                            break;
                         }
                         mes++;
                         if (mes > 12) { mes = 1; ano++; }
                     }
+                    if (idxParcela === -1) return; // nenhuma parcela neste mês
+
+                    // Verifica se esta parcela já foi paga
+                    const pagas = p.parcelasPagas || [];
+                    if (pagas.includes(idxParcela)) return; // já paga, não soma
+
+                    total += p.valorParcela || 0;
                 });
                 return total;
             }
@@ -887,7 +906,6 @@
                                 excluirParcela: {}
                             };
                         } else {
-                            // Garantir novos campos
                             if (d.disponivelConfig.incluirParcelasCartaoMesAtual === undefined) d.disponivelConfig.incluirParcelasCartaoMesAtual = false;
                             if (d.disponivelConfig.incluirParcelasCartaoMesSeguinte === undefined) d.disponivelConfig.incluirParcelasCartaoMesSeguinte = false;
                         }
@@ -2099,45 +2117,33 @@
                     detalhes.push({ label: 'Contas Fixas', valor: -totalCF });
                 }
 
+                // Parcelas boleto/carnê NÃO PAGAS
                 if (data.disponivelConfig.incluirParcelasBoleto !== false) {
-                    let totalParc = 0;
                     const mesAtual = getCurrentMonthKey();
-                    data.parcelas.forEach(p => {
-                        if (data.disponivelConfig.excluirParcela[p.id]) return;
-                        const forma = (p.formaPagamento || '').toLowerCase();
-                        const ehBoleto = forma.indexOf('boleto') !== -1 || forma.indexOf('carn') !== -1;
-                        if (!ehBoleto) return;
-                        let mes = p.mesInicio || 1;
-                        let ano = p.anoInicio || new Date().getFullYear();
-                        const total = p.numParcelas || 1;
-                        for (let i = 0; i < total; i++) {
-                            const key = getMesAnoFromDate(ano, mes);
-                            if (key === mesAtual) totalParc += p.valorParcela || 0;
-                            mes++;
-                            if (mes > 12) { mes = 1; ano++; }
-                        }
-                    });
-                    saldo -= totalParc;
-                    detalhes.push({ label: 'Parcelas do mês (boleto/carnê)', valor: -totalParc });
-                }
-
-                // Parcelas cartão mês atual
-                if (data.disponivelConfig.incluirParcelasCartaoMesAtual !== false) {
-                    const mesAtual = getCurrentMonthKey();
-                    const totalCartaoMes = totalParcelasCartaoNoMes(mesAtual);
-                    if (totalCartaoMes > 0) {
-                        saldo -= totalCartaoMes;
-                        detalhes.push({ label: 'Parcelas cartão (mês atual)', valor: -totalCartaoMes });
+                    const totalBoleto = totalParcelasNaoPagasNoMes(mesAtual, 'boleto');
+                    if (totalBoleto > 0) {
+                        saldo -= totalBoleto;
+                        detalhes.push({ label: 'Parcelas do mês (boleto/carnê) [não pagas]', valor: -totalBoleto });
                     }
                 }
 
-                // Parcelas cartão mês seguinte
+                // Parcelas cartão mês atual NÃO PAGAS
+                if (data.disponivelConfig.incluirParcelasCartaoMesAtual !== false) {
+                    const mesAtual = getCurrentMonthKey();
+                    const totalCartaoMes = totalParcelasNaoPagasNoMes(mesAtual, 'cartao');
+                    if (totalCartaoMes > 0) {
+                        saldo -= totalCartaoMes;
+                        detalhes.push({ label: 'Parcelas cartão (mês atual) [não pagas]', valor: -totalCartaoMes });
+                    }
+                }
+
+                // Parcelas cartão mês seguinte NÃO PAGAS
                 if (data.disponivelConfig.incluirParcelasCartaoMesSeguinte !== false) {
                     const mesSeguinte = getNextMonthKey();
-                    const totalCartaoSeg = totalParcelasCartaoNoMes(mesSeguinte);
+                    const totalCartaoSeg = totalParcelasNaoPagasNoMes(mesSeguinte, 'cartao');
                     if (totalCartaoSeg > 0) {
                         saldo -= totalCartaoSeg;
-                        detalhes.push({ label: 'Parcelas cartão (mês seguinte)', valor: -totalCartaoSeg });
+                        detalhes.push({ label: 'Parcelas cartão (mês seguinte) [não pagas]', valor: -totalCartaoSeg });
                     }
                 }
 
@@ -2171,18 +2177,18 @@
                         </div>
                         <div class="toggle-wrap" style="margin-bottom:6px;">
                             <div class="toggle-track ${data.disponivelConfig.incluirParcelasBoleto !== false ? 'on' : ''}" data-key="incluirParcelasBoleto"></div>
-                            <span>Incluir Parcelas (boleto/carnê)</span>
+                            <span>Incluir Parcelas (boleto/carnê) [não pagas]</span>
                         </div>
                         <div class="toggle-wrap" style="margin-bottom:6px;">
                             <div class="toggle-track ${data.disponivelConfig.incluirParcelasCartaoMesAtual !== false ? 'on' : ''}" data-key="incluirParcelasCartaoMesAtual"></div>
-                            <span>Incluir Parcelas de Cartão (mês atual)</span>
+                            <span>Incluir Parcelas de Cartão (mês atual) [não pagas]</span>
                         </div>
                         <div class="toggle-wrap" style="margin-bottom:6px;">
                             <div class="toggle-track ${data.disponivelConfig.incluirParcelasCartaoMesSeguinte !== false ? 'on' : ''}" data-key="incluirParcelasCartaoMesSeguinte"></div>
-                            <span>Incluir Parcelas de Cartão (mês seguinte)</span>
+                            <span>Incluir Parcelas de Cartão (mês seguinte) [não pagas]</span>
                         </div>
                         <div class="text-muted" style="font-size:12px;margin-top:8px;">
-                            💡 As faturas de cartão <strong>não</strong> entram neste cálculo.
+                            💡 Parcelas já pagas (com check ✓) não são subtraídas.
                         </div>
                     `;
                     opcoesEl.querySelectorAll('.toggle-track').forEach(t => {
@@ -2443,7 +2449,7 @@
                 renderAll();
                 setTimeout(processSyncQueue, 1000);
                 setInterval(processSyncQueue, 30000);
-                console.log('💰 Finanças PWA carregado (revisão 10) — resumo parcelas com forma, toggles de cartão no saldo disponível.');
+                console.log('💰 Finanças PWA carregado (revisão 11) — parcelas pagas não entram no saldo disponível.');
             }
 
             window.__data = data;
