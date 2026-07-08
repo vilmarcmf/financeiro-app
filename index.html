@@ -658,8 +658,8 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 11)
-        //  Corrigido: parcelas pagas NÃO entram no saldo disponível
+        //  FINANÇAS PWA — CÓDIGO COMPLETO (revisão 12)
+        //  Adicionado: separador de milhares com ponto (.)
         // ================================================================
 
         (function() {
@@ -726,9 +726,22 @@
                 return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
             }
 
-            function fmt(n) {
-                return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',');
+            // ----- FORMATAÇÃO COM SEPARADOR DE MILHAR E VÍRGULA DECIMAL -----
+            function fmt(valor) {
+                if (valor === undefined || valor === null || isNaN(valor)) valor = 0;
+                // Arredonda para 2 casas decimais (evita erros de ponto flutuante)
+                const num = Math.round(Number(valor) * 100) / 100;
+                const partes = num.toFixed(2).split('.');
+                const inteiro = partes[0];
+                const decimal = partes[1];
+                // Insere pontos a cada 3 dígitos
+                const comPonto = inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                return 'R$ ' + comPonto + ',' + decimal;
             }
+
+            // Mantém a função fmt antiga para compatibilidade, mas renomeamos
+            // Todas as chamadas a fmt agora usam a versão com separador.
+            // (A função antiga se chamava fmt, então sobrescrevemos.)
 
             function fmtDate(d) {
                 const dt = new Date(d);
@@ -2449,7 +2462,7 @@
                 renderAll();
                 setTimeout(processSyncQueue, 1000);
                 setInterval(processSyncQueue, 30000);
-                console.log('💰 Finanças PWA carregado (revisão 11) — parcelas pagas não entram no saldo disponível.');
+                console.log('💰 Finanças PWA carregado (revisão 12) — com separador de milhares.');
             }
 
             window.__data = data;
