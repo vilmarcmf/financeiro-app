@@ -240,12 +240,6 @@
             font-size: 10px;
             font-weight: 400;
             color: var(--text-secondary);
-            background: var(--bg);
-            padding: 1px 8px;
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
         }
         .list-item .info .sub { font-size: 12px; color: var(--text-secondary); }
         .list-item .value { font-weight: 600; font-size: 15px; white-space: nowrap; }
@@ -1315,7 +1309,7 @@
                             <div class="info">
                                 <div class="name">
                                     ${escapeHtml(cf.nome)}
-                                    <span class="due-badge">📅 ${dia}</span>
+                                    <span class="due-badge">dia ${dia}</span>
                                 </div>
                             </div>
                             <div style="display:flex;align-items:center;gap:4px;">
