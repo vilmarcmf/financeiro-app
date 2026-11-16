@@ -423,6 +423,7 @@
         }
         .parcela-cabecalho .chevron { font-size: 16px; color: var(--text-secondary); transition: transform 0.2s; }
         .parcela-cabecalho[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+        .grupo-toggle { min-height: 44px; margin: 8px 0 4px; font-weight: 600; font-size: 14px; color: var(--text-secondary); }
         .parcela-grade { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
         .parcela-num {
             width: 36px;
@@ -746,8 +747,10 @@
                 </div>
             </div>
             <div class="config-nota">
-                <strong>Dica:</strong> o app envia cada ação e o estado atual para o Google Sheets via POST
-                (veja Code.gs). Se estiver offline, as ações ficam na fila e são reenviadas quando a internet voltar.
+                <strong>Como funciona:</strong> o app envia a situação completa (saldos, fixas, parcelas, faturas,
+                caixinhas e histórico mensal) para o Google Sheets <strong>na virada de cada mês</strong> e quando você toca em
+                "Sincronizar Agora". As alterações do dia a dia ficam só no aparelho até o próximo envio.
+                Se estiver sem internet na hora, o envio fica na fila e é refeito quando a conexão voltar.
                 Faça backup (Exportar JSON) de vez em quando — é a sua cópia de segurança independente da planilha.
                 O arquivo de backup contém a URL e o token: guarde-o em local seguro.
             </div>
@@ -759,13 +762,17 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — revisão 21
+        //  FINANÇAS PWA — revisão 23
         //  - Formas de pagamento das parcelas vêm dos cartões da aba Faturas;
         //    cartão excluído continua identificado nas parcelas que o usavam.
         //  - Tema claro / escuro / automático em Configurações → Aparência.
         //  - Configurações sem botão "Salvar": URL e token gravam sozinhos ao sair do campo.
         //  - Desempenho: o "desfazer" tem teto de espaço (antes podia lotar o armazenamento)
         //    e cada ação grava os dados uma vez só.
+        //  - Virada de mês/ano também é detectada com o app aberto na tela (a cada 30 s).
+        //  - Planilha: o estado completo é enviado só na virada do mês (e em "Sincronizar Agora").
+        //    As ações individuais não são mais enviadas; ficam no Histórico do app.
+        //  - Panorama começa no mês atual; compras quitadas ficam num grupo recolhido.
         //  Mesma estrutura de dados (localStorage) e mesmo formato de envio
         //  ao Google Sheets da revisão 17 — Code.gs não precisa mudar.
         // ================================================================
@@ -795,7 +802,7 @@
             // Campos que o "desfazer" nunca altera (configuração, arquivo mensal e controle interno)
             const CAMPOS_FORA_DO_UNDO = [
                 'undoStack', 'undoIndex', 'undoDescs', 'historicoAcoes', 'syncQueue',
-                'googleSheetsUrl', 'googleSheetsToken', 'ultimoMesVerificado', 'disponivelConfig'
+                'googleSheetsUrl', 'googleSheetsToken', 'ultimoMesVerificado', 'disponivelConfig', 'ultimoEnvioPlanilha'
             ].concat(MAPAS_HISTORICO);
             const CAMPOS_FORA_DO_BACKUP = ['undoStack', 'undoIndex', 'undoDescs', 'syncQueue'];
 
@@ -859,6 +866,7 @@
                     googleSheetsToken: '',
                     syncQueue: [],
                     ultimoMesVerificado: '',
+                    ultimoEnvioPlanilha: '',
                     disponivelConfig: defaultConfigDisponivel()
                 };
             }
@@ -872,6 +880,8 @@
             let gravacaoPendente = false;
             let tamanhoUltimoSnapshot = 0;
             const parcelasExpandidas = {};
+            let quitadasAbertas = false;        // grupo "Quitadas" da aba Parcelas
+            let panoramaComAnteriores = false;  // meses já passados no Panorama
 
             // --------------------------------------------------------------
             // 2. HELPERS
@@ -983,8 +993,12 @@
                 if (min < 60) return 'há ' + min + ' min';
                 if (hrs < 24) return 'há ' + hrs + (hrs === 1 ? ' hora' : ' horas');
                 if (dias < 30) return 'há ' + dias + (dias === 1 ? ' dia' : ' dias');
-                const meses = Math.floor(dias / 30);
-                return 'há ' + meses + (meses === 1 ? ' mês' : ' meses');
+                if (dias < 365) {
+                    const meses = Math.floor(dias / 30);
+                    return 'há ' + meses + (meses === 1 ? ' mês' : ' meses');
+                }
+                const anos = Math.floor(dias / 365);
+                return 'há ' + anos + (anos === 1 ? ' ano' : ' anos');
             }
 
             function semAcento(s) {
@@ -1211,6 +1225,7 @@
                 d.googleSheetsUrl = String(d.googleSheetsUrl || '');
                 d.googleSheetsToken = String(d.googleSheetsToken || '');
                 d.ultimoMesVerificado = String(d.ultimoMesVerificado || '');
+                d.ultimoEnvioPlanilha = String(d.ultimoEnvioPlanilha || '');
                 return d;
             }
 
@@ -1307,7 +1322,6 @@
                 if (data.historicoAcoes.length > MAX_HISTORICO_ACOES) data.historicoAcoes.shift();
                 saveData();
                 renderHistory();
-                enqueueSync('acao', acao);
             }
 
             // Chame DEPOIS de alterar "data"
@@ -1321,7 +1335,6 @@
                 }
                 data.undoIndex = data.undoStack.length - 1;
                 registrarAcao(desc, antes, depois);
-                enqueueSyncEstado();
             }
 
             function undo() {
@@ -1341,7 +1354,6 @@
                 data.undoIndex = data.undoStack.length - 1;
 
                 registrarAcao('Desfez: ' + desc, null, null);
-                enqueueSyncEstado(); // a planilha também volta ao estado anterior
                 renderAll();
                 toast('↩ Desfeito: ' + desc);
             }
@@ -1357,6 +1369,11 @@
             // --------------------------------------------------------------
             // 5. GOOGLE SHEETS SYNC
             // --------------------------------------------------------------
+            // O app envia o ESTADO COMPLETO para a planilha em três momentos apenas:
+            //   1) na virada do mês (verificarResetMensal);
+            //   2) quando o usuário toca em "Sincronizar Agora";
+            //   3) quando a URL/token são configurados (para confirmar que a conexão funciona).
+            // As alterações do dia a dia não disparam envio. Se o envio falhar, fica na fila e é repetido.
             function montarEstado() {
                 return {
                     receitaMes: data.receitaMes,
@@ -1439,6 +1456,7 @@
 
                         if (enviado) {
                             ultimoErroSync = '';
+                            if (item.tipo === 'estado') data.ultimoEnvioPlanilha = nowISO();
                             removerDaFila(item.id);
                             saveData();
                             continue;
@@ -1462,13 +1480,14 @@
             function atualizarStatusSync() {
                 const n = data.syncQueue.length;
                 const pend = n + (n === 1 ? ' envio pendente' : ' envios pendentes');
+                const ultimo = data.ultimoEnvioPlanilha ? 'Último envio: ' + fmtDate(data.ultimoEnvioPlanilha) + '.' : 'Nada enviado ainda.';
                 let msg;
                 if (!data.googleSheetsUrl) msg = '⚪ Sincronização desligada (URL não configurada)';
-                else if (!navigator.onLine) msg = '🔴 Offline' + (n > 0 ? ' — ' + pend : '');
-                else if (isSyncing) msg = '🔄 Enviando… ' + pend;
-                else if (ultimoErroSync) msg = '⚠️ Falha: ' + ultimoErroSync + (n > 0 ? ' — ' + pend : '');
-                else if (n > 0) msg = '⏳ ' + pend;
-                else msg = '✅ Sincronizado';
+                else if (!navigator.onLine && n > 0) msg = '🔴 Offline — ' + pend + '. ' + ultimo;
+                else if (isSyncing) msg = '🔄 Enviando…';
+                else if (ultimoErroSync) msg = '⚠️ Falha: ' + ultimoErroSync + (n > 0 ? ' — ' + pend : '') + '. ' + ultimo;
+                else if (n > 0) msg = '⏳ ' + pend + '. ' + ultimo;
+                else msg = (data.ultimoEnvioPlanilha ? '✅ ' : '⏳ ') + ultimo + ' Próximo envio automático: virada do mês.';
 
                 const el = $('sync-status');
                 if (el) el.textContent = msg;
@@ -1830,54 +1849,79 @@
                         `;
                     }).join('');
 
-                const htmlCompras = data.parcelas.map(p => {
-                    const total = p.numParcelas || 1;
-                    const pagas = p.parcelasPagas || [];
-                    const progresso = Math.min(100, Math.round((pagas.length / total) * 100));
-                    const expandido = !!parcelasExpandidas[p.id];
-                    const idxMesAtual = indiceParcelaNoMes(p, mesAtual);
-
-                    let detalhe = '';
-                    if (expandido) {
-                        const botoes = Array.from({ length: total }, (_, idx) => {
-                            const cls = pagas.includes(idx) ? ' paga' : (idx === idxMesAtual ? ' atual' : '');
-                            return `<button type="button" class="parcela-num${cls}" data-acao="parcela-toggle" data-id="${escapeHtml(p.id)}" data-idx="${idx}"
-                                            aria-pressed="${pagas.includes(idx) ? 'true' : 'false'}">${idx + 1}</button>`;
-                        }).join('');
-                        detalhe = `
-                            <div class="mt-8">
-                                <div class="flex-between" style="font-size:13px;">
-                                    <span>${fmt(p.valorTotal)} · ${total}x ${fmt(p.valorParcela)}</span>
-                                    <span>${escapeHtml(labelForma(p))}</span>
-                                </div>
-                                <div class="text-muted" style="font-size:12px;">1ª cobrança: ${getMonthName(getMesAnoFromDate(p.anoInicio, p.mesInicio))}</div>
-                                <div class="parcela-grade">${botoes}</div>
-                                ${p.ultimaModificacao ? `<div class="text-muted mt-8" style="font-size:11px;">Última modificação: ${fmtDate(p.ultimaModificacao)}</div>` : ''}
-                                <div class="btn-group mt-8">
-                                    <button type="button" class="btn btn-sm btn-outline" data-acao="parcela-editar" data-id="${escapeHtml(p.id)}">✏️ Editar</button>
-                                    <button type="button" class="btn btn-sm btn-danger-outline" data-acao="parcela-excluir" data-id="${escapeHtml(p.id)}">✕ Excluir</button>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    return `
-                        <div class="subcard">
-                            <button type="button" class="parcela-cabecalho" data-acao="parcela-expandir" data-id="${escapeHtml(p.id)}" aria-expanded="${expandido}">
-                                <span><strong>${escapeHtml(p.descricao || 'Sem descrição')}</strong>
-                                    <span class="text-muted" style="font-size:12px;"> · ${pagas.length}/${total} pagas</span></span>
-                                <span class="chevron">▾</span>
-                            </button>
-                            <div class="progress-bar"><div class="fill${progresso >= 100 ? ' green' : ''}" style="width:${progresso}%;"></div></div>
-                            ${detalhe}
-                        </div>
+                // Compras em aberto aparecem sempre; as quitadas ficam num grupo recolhido
+                // e só são montadas quando o grupo é aberto (a aba não fica mais pesada com os anos).
+                const abertas = [];
+                const quitadas = [];
+                data.parcelas.forEach(p => (estaQuitada(p) ? quitadas : abertas).push(p));
+                const htmlAbertas = abertas.map(p => cardCompra(p, mesAtual)).join('');
+                let htmlQuitadas = '';
+                if (quitadas.length > 0) {
+                    htmlQuitadas = `
+                        <button type="button" class="parcela-cabecalho grupo-toggle" data-acao="quitadas-toggle" aria-expanded="${quitadasAbertas}">
+                            <span>✅ Quitadas (${quitadas.length})</span>
+                            <span class="chevron">▾</span>
+                        </button>
+                        ${quitadasAbertas ? quitadas.map(p => cardCompra(p, mesAtual)).join('') : ''}
                     `;
-                }).join('');
+                }
+                const semAbertas = data.parcelas.length === 0
+                    ? estadoVazio('🛒', 'Nenhuma compra parcelada.')
+                    : '<div class="text-muted mb-8">Nenhuma compra em aberto.</div>';
 
                 el.innerHTML = `
                     <div class="section-title mt-8">📅 Parcelas deste mês</div>
                     <div class="mb-8">${htmlMes}</div>
-                    <div class="section-title" style="margin-top:16px;">🗂️ Todas as compras</div>
-                    ${htmlCompras || estadoVazio('🛒', 'Nenhuma compra parcelada.')}
+                    <div class="section-title" style="margin-top:16px;">🗂️ Compras em aberto</div>
+                    ${htmlAbertas || semAbertas}
+                    ${htmlQuitadas}
+                `;
+            }
+
+            function estaQuitada(p) {
+                return (p.parcelasPagas || []).length >= (p.numParcelas || 1);
+            }
+
+            function cardCompra(p, mesAtual) {
+                const total = p.numParcelas || 1;
+                const pagas = p.parcelasPagas || [];
+                const progresso = Math.min(100, Math.round((pagas.length / total) * 100));
+                const expandido = !!parcelasExpandidas[p.id];
+                const idxMesAtual = indiceParcelaNoMes(p, mesAtual);
+
+                let detalhe = '';
+                if (expandido) {
+                    const botoes = Array.from({ length: total }, (_, idx) => {
+                        const cls = pagas.includes(idx) ? ' paga' : (idx === idxMesAtual ? ' atual' : '');
+                        return `<button type="button" class="parcela-num${cls}" data-acao="parcela-toggle" data-id="${escapeHtml(p.id)}" data-idx="${idx}"
+                                        aria-pressed="${pagas.includes(idx) ? 'true' : 'false'}">${idx + 1}</button>`;
+                    }).join('');
+                    detalhe = `
+                        <div class="mt-8">
+                            <div class="flex-between" style="font-size:13px;">
+                                <span>${fmt(p.valorTotal)} · ${total}x ${fmt(p.valorParcela)}</span>
+                                <span>${escapeHtml(labelForma(p))}</span>
+                            </div>
+                            <div class="text-muted" style="font-size:12px;">1ª cobrança: ${getMonthName(getMesAnoFromDate(p.anoInicio, p.mesInicio))}</div>
+                            <div class="parcela-grade">${botoes}</div>
+                            ${p.ultimaModificacao ? `<div class="text-muted mt-8" style="font-size:11px;">Última modificação: ${fmtDate(p.ultimaModificacao)}</div>` : ''}
+                            <div class="btn-group mt-8">
+                                <button type="button" class="btn btn-sm btn-outline" data-acao="parcela-editar" data-id="${escapeHtml(p.id)}">✏️ Editar</button>
+                                <button type="button" class="btn btn-sm btn-danger-outline" data-acao="parcela-excluir" data-id="${escapeHtml(p.id)}">✕ Excluir</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="subcard">
+                        <button type="button" class="parcela-cabecalho" data-acao="parcela-expandir" data-id="${escapeHtml(p.id)}" aria-expanded="${expandido}">
+                            <span><strong>${escapeHtml(p.descricao || 'Sem descrição')}</strong>
+                                <span class="text-muted" style="font-size:12px;"> · ${pagas.length}/${total} pagas</span></span>
+                            <span class="chevron">▾</span>
+                        </button>
+                        <div class="progress-bar"><div class="fill${progresso >= 100 ? ' green' : ''}" style="width:${progresso}%;"></div></div>
+                        ${detalhe}
+                    </div>
                 `;
             }
 
@@ -1896,6 +1940,7 @@
                     delete p.parcelasPagasDatas[idx];
                 }
                 p.ultimaModificacao = nowISO();
+                if (pos === -1 && estaQuitada(p)) toast('🎉 "' + p.descricao + '" quitada — foi para o grupo Quitadas.');
                 pushUndo(
                     (pos === -1 ? 'Marcou' : 'Desmarcou') + ' parcela ' + (idx + 1) + ' de "' + p.descricao + '"',
                     { parcelasPagas: antes }, { parcelasPagas: [...p.parcelasPagas] }
@@ -1992,29 +2037,36 @@
                 renderAll();
             }
 
+            // Mostra do mês atual em diante. Os meses que já passaram só são calculados
+            // e desenhados se o usuário pedir ("Ver meses anteriores").
             function renderPanorama() {
                 const el = $('panorama-anual');
                 if (!el) return;
+                const mesAtual = getCurrentMonthKey();
                 const mapa = {};
+                let haAnteriores = false;
                 data.parcelas.forEach(p => {
                     const inicio = getMesAnoFromDate(p.anoInicio || new Date().getFullYear(), p.mesInicio || 1);
-                    for (let i = 0; i < (p.numParcelas || 1); i++) {
+                    const jaPassaram = Math.max(0, monthDiff(mesAtual, inicio)); // parcelas com vencimento antes deste mês
+                    if (jaPassaram > 0) haAnteriores = true;
+                    const primeira = panoramaComAnteriores ? 0 : jaPassaram;
+                    for (let i = primeira; i < (p.numParcelas || 1); i++) {
                         const key = addMonths(inicio, i);
                         mapa[key] = (mapa[key] || 0) + (p.valorParcela || 0);
                     }
                 });
                 const meses = Object.keys(mapa).sort();
-                if (meses.length === 0) {
-                    el.innerHTML = '<div class="text-muted">Nenhuma parcela para exibir.</div>';
-                    return;
-                }
-                const mesAtual = getCurrentMonthKey();
-                el.innerHTML = '<div class="scroll-table"><table><thead><tr><th>Mês</th><th class="num">Total Parcelas</th></tr></thead><tbody>' +
-                    meses.map(key => {
-                        const cls = key === mesAtual ? 'atual' : (key < mesAtual ? 'passado' : '');
-                        return `<tr class="${cls}"><td>${getMonthName(key)}${key === mesAtual ? ' · atual' : ''}</td><td class="num">${fmt(mapa[key])}</td></tr>`;
-                    }).join('') +
-                    '</tbody></table></div>';
+                const linhas = meses.map(key => {
+                    const cls = key === mesAtual ? 'atual' : (key < mesAtual ? 'passado' : '');
+                    return `<tr class="${cls}"><td>${getMonthName(key)}${key === mesAtual ? ' · atual' : ''}</td><td class="num">${fmt(mapa[key])}</td></tr>`;
+                }).join('');
+                const tabela = linhas
+                    ? '<div class="scroll-table"><table><thead><tr><th>Mês</th><th class="num">Total Parcelas</th></tr></thead><tbody>' + linhas + '</tbody></table></div>'
+                    : '<div class="text-muted">' + (data.parcelas.length ? 'Nenhuma parcela a vencer.' : 'Nenhuma parcela para exibir.') + '</div>';
+                const botao = haAnteriores
+                    ? `<button type="button" class="btn btn-sm btn-outline mt-8" data-acao="panorama-anteriores">${panoramaComAnteriores ? 'Ocultar meses anteriores' : 'Ver meses anteriores'}</button>`
+                    : '';
+                el.innerHTML = tabela + botao;
             }
 
             // ---------- ABA 3: FATURAS DO MÊS ----------
@@ -2407,6 +2459,14 @@
                     case 'parcela-excluir':
                         excluirParcela(id);
                         break;
+                    case 'quitadas-toggle':
+                        quitadasAbertas = !quitadasAbertas;
+                        renderParcelas();
+                        break;
+                    case 'panorama-anteriores':
+                        panoramaComAnteriores = !panoramaComAnteriores;
+                        renderPanorama();
+                        break;
                     case 'fatura-toggle': {
                         const f = data.faturas.find(x => x.id === id);
                         if (!f) break;
@@ -2542,7 +2602,6 @@
                     verificarResetMensal(); // o backup pode ser de um mês anterior
                     garantirBaseUndo();
                     saveData();
-                    enqueueSyncEstado();
                     renderAll();
                     toast('📥 Dados importados com sucesso!');
                 };
@@ -2625,7 +2684,7 @@
                         return;
                     }
                     enqueueSyncEstado();
-                    toast('🔄 Sincronizando...');
+                    toast('🔄 Enviando para a planilha...');
                 });
 
                 // Conexão
@@ -2684,7 +2743,14 @@
                     navigator.storage.persist().catch(() => {});
                 }
                 setTimeout(processSyncQueue, 1000);
-                setInterval(processSyncQueue, 30000);
+                setInterval(function () {
+                    // App aberto na tela durante a virada do mês (ou do ano): não há "voltar ao app" para avisar
+                    if (verificarResetMensal()) {
+                        garantirBaseUndo();
+                        renderAll();
+                    }
+                    processSyncQueue();
+                }, 30000);
             }
 
             window.__data = data; // para inspeção no console
