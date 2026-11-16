@@ -759,11 +759,13 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — revisão 20
+        //  FINANÇAS PWA — revisão 21
         //  - Formas de pagamento das parcelas vêm dos cartões da aba Faturas;
         //    cartão excluído continua identificado nas parcelas que o usavam.
         //  - Tema claro / escuro / automático em Configurações → Aparência.
         //  - Configurações sem botão "Salvar": URL e token gravam sozinhos ao sair do campo.
+        //  - Desempenho: o "desfazer" tem teto de espaço (antes podia lotar o armazenamento)
+        //    e cada ação grava os dados uma vez só.
         //  Mesma estrutura de dados (localStorage) e mesmo formato de envio
         //  ao Google Sheets da revisão 17 — Code.gs não precisa mudar.
         // ================================================================
@@ -778,6 +780,10 @@
             const STORAGE_KEY_CORROMPIDO = 'financas_data_corrompido';
             const STORAGE_KEY_TEMA = 'financas_tema'; // preferência deste aparelho: fica fora do backup e da planilha
             const MAX_UNDO = 50;
+            const MIN_UNDO = 3;
+            // Teto (em caracteres) para as cópias do "desfazer". O armazenamento do navegador é pequeno
+            // (alguns MB) e os dados inteiros são regravados a cada ação: sem teto, as cópias dominam tudo.
+            const ORCAMENTO_UNDO = 600000;
             const MAX_HISTORICO_ACOES = 300;
             const MAX_FILA_SYNC = 500;
             const MAX_TENTATIVAS_SYNC = 6;
@@ -863,6 +869,8 @@
             let isSyncing = false;
             let ultimoErroSync = '';
             let toastTimer = null;
+            let gravacaoPendente = false;
+            let tamanhoUltimoSnapshot = 0;
             const parcelasExpandidas = {};
 
             // --------------------------------------------------------------
@@ -1175,6 +1183,13 @@
                     d.undoStack = d.undoStack.slice(0, d.undoIndex + 1);
                 }
                 if (d.undoStack.length > MAX_UNDO) d.undoStack = d.undoStack.slice(-MAX_UNDO);
+                // Teto de espaço: descarta as cópias mais antigas (as da versão anterior eram bem maiores)
+                const tamanhos = d.undoStack.map(x => JSON.stringify(x).length);
+                let totalUndo = tamanhos.reduce((soma, t) => soma + t, 0);
+                while (d.undoStack.length > MIN_UNDO && totalUndo > ORCAMENTO_UNDO) {
+                    totalUndo -= tamanhos.shift();
+                    d.undoStack.shift();
+                }
                 let descs = Array.isArray(d.undoDescs) ? d.undoDescs.map(x => String(x || '')) : [];
                 if (descs.length > d.undoStack.length) descs = descs.slice(-d.undoStack.length);
                 while (descs.length < d.undoStack.length) descs.unshift('');
@@ -1218,12 +1233,31 @@
                 }
             }
 
+            // Uma ação chama saveData() várias vezes (histórico, fila de sync...). Em vez de regravar
+            // tudo a cada chamada, grava uma vez só, assim que o código da ação termina.
             function saveData() {
+                if (gravacaoPendente) return;
+                gravacaoPendente = true;
+                queueMicrotask(gravarAgora);
+            }
+
+            function gravarAgora() {
+                if (!gravacaoPendente) return;
+                gravacaoPendente = false;
                 try {
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
                 } catch (e) {
+                    // Sem espaço: abre mão das cópias do "desfazer" e tenta de novo antes de desistir
+                    if (data.undoStack.length > 1) {
+                        reiniciarUndo();
+                        try {
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                            toast('⚠️ Armazenamento quase cheio — o "desfazer" foi esvaziado. Exporte um backup.');
+                            return;
+                        } catch (e2) { /* continua sem espaço */ }
+                    }
                     console.warn('Erro ao salvar dados', e);
-                    toast('⚠️ Erro ao salvar — armazenamento pode estar cheio.');
+                    toast('⚠️ Não consegui salvar — armazenamento cheio. Exporte um backup agora.');
                 }
             }
 
@@ -1237,7 +1271,14 @@
                 for (const key in data) {
                     if (CAMPOS_FORA_DO_UNDO.indexOf(key) === -1) copy[key] = data[key];
                 }
-                return JSON.parse(JSON.stringify(copy));
+                const texto = JSON.stringify(copy);
+                tamanhoUltimoSnapshot = texto.length;
+                return JSON.parse(texto);
+            }
+
+            // Quantas cópias cabem no teto de espaço (entre MIN_UNDO e MAX_UNDO)
+            function limiteDeCopias() {
+                return Math.max(MIN_UNDO, Math.min(MAX_UNDO, Math.floor(ORCAMENTO_UNDO / Math.max(1, tamanhoUltimoSnapshot))));
             }
 
             function garantirBaseUndo() {
@@ -1273,7 +1314,8 @@
             function pushUndo(desc, antes, depois) {
                 data.undoStack.push(snapshotEnxuto());
                 data.undoDescs.push(desc);
-                while (data.undoStack.length > MAX_UNDO) {
+                const maxCopias = limiteDeCopias();
+                while (data.undoStack.length > maxCopias) {
                     data.undoStack.shift();
                     data.undoDescs.shift();
                 }
@@ -2255,7 +2297,7 @@
             // ---------- HISTÓRICO ----------
             function renderHistory() {
                 const el = $('history-list');
-                if (!el) return;
+                if (!el || !$('modal-history').classList.contains('open')) return; // fechado: nada a desenhar
                 const items = data.historicoAcoes || [];
                 if (items.length === 0) {
                     el.innerHTML = '<div class="text-muted" style="padding:16px 0;text-align:center;">Nenhuma ação registrada.</div>';
@@ -2542,8 +2584,8 @@
 
                 // Modais fixos (histórico e configurações)
                 $('btn-history').addEventListener('click', function () {
-                    renderHistory();
                     abrirModal('modal-history');
+                    renderHistory();
                 });
                 $('btn-config').addEventListener('click', function () {
                     $('config-sheets-url').value = data.googleSheetsUrl || '';
@@ -2594,8 +2636,9 @@
                 window.addEventListener('offline', atualizarStatusSync);
 
                 // O iOS mantém o app suspenso por dias: ao voltar, confere a virada do mês e atualiza a tela
+                window.addEventListener('pagehide', gravarAgora);
                 document.addEventListener('visibilitychange', function () {
-                    if (document.visibilityState !== 'visible') return;
+                    if (document.visibilityState !== 'visible') { gravarAgora(); return; }
                     const virou = verificarResetMensal();
                     if (virou) garantirBaseUndo();
                     const digitando = document.activeElement && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);
