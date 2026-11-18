@@ -121,7 +121,13 @@
                se o cabeçalho azul ficar embaixo dela, aparece "esfumaçado". */
             padding-top: var(--safe-top);
         }
+        /* Safari 26/27 NÃO usa mais a meta theme-color: ele pinta a barra de status com a cor
+           do elemento fixed/sticky que toca o topo da tela (largura >= 90%). Sem isso, usa o
+           fundo do <body> (cinza-claro) e esfumaça a borda de cima do cabeçalho azul.
+           O sticky abaixo faz o iOS amostrar o azul do cabeçalho. */
         #header {
+            position: sticky;
+            top: 0;
             flex-shrink: 0;
             height: var(--header-height);
             padding: 0 16px;
@@ -131,7 +137,6 @@
             align-items: center;
             justify-content: space-between;
             z-index: 10;
-            position: relative;
         }
         #header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
         #header-actions { display: flex; gap: 12px; }
@@ -768,7 +773,7 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — revisão 25
+        //  FINANÇAS PWA — revisão 26
         //  - Formas de pagamento das parcelas vêm dos cartões da aba Faturas;
         //    cartão excluído continua identificado nas parcelas que o usavam.
         //  - Tema claro / escuro / automático em Configurações → Aparência.
@@ -781,6 +786,7 @@
         //  - Panorama começa no mês atual; compras quitadas ficam num grupo recolhido.
         //  - Barra de status sólida (status-bar-style "default"): no iOS 26.1+/27 o modo
         //    "black-translucent" ganha um desfoque do sistema no topo e a tela fica curta embaixo.
+        //  - Cabeçalho "sticky": o Safari 26/27 pinta a barra de status com a cor dele.
         //  Mesma estrutura de dados (localStorage) e mesmo formato de envio
         //  ao Google Sheets da revisão 17 — Code.gs não precisa mudar.
         // ================================================================
