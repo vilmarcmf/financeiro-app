@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Minhas Finanças" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="theme-color" content="#1a73e8" id="meta-theme-color" />
@@ -21,6 +21,9 @@
                 tema = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'escuro' : 'claro';
             }
             document.documentElement.setAttribute('data-tema', tema === 'escuro' ? 'escuro' : 'claro');
+            // Cor da barra de status (iOS 27 pinta a barra sólida com esta cor)
+            var m = document.getElementById('meta-theme-color');
+            if (m) m.setAttribute('content', tema === 'escuro' ? '#15213a' : '#1a73e8');
         })();
     </script>
     <style>
@@ -113,12 +116,15 @@
             background: var(--bg);
             position: relative;
             overflow: hidden;
+            /* Área da barra de status (relógio/bateria) fica com a cor de fundo do app.
+               No iOS 26 o sistema desenha uma faixa translúcida própria por cima dessa área;
+               se o cabeçalho azul ficar embaixo dela, aparece "esfumaçado". */
+            padding-top: var(--safe-top);
         }
-        /* O cabeçalho cobre a área da barra de status (relógio/bateria ficam sobre o azul) */
         #header {
             flex-shrink: 0;
-            height: calc(var(--header-height) + var(--safe-top));
-            padding: var(--safe-top) 16px 0;
+            height: var(--header-height);
+            padding: 0 16px;
             background: var(--header-bg);
             color: #fff;
             display: flex;
@@ -762,7 +768,7 @@
 
     <script>
         // ================================================================
-        //  FINANÇAS PWA — revisão 23
+        //  FINANÇAS PWA — revisão 25
         //  - Formas de pagamento das parcelas vêm dos cartões da aba Faturas;
         //    cartão excluído continua identificado nas parcelas que o usavam.
         //  - Tema claro / escuro / automático em Configurações → Aparência.
@@ -773,6 +779,8 @@
         //  - Planilha: o estado completo é enviado só na virada do mês (e em "Sincronizar Agora").
         //    As ações individuais não são mais enviadas; ficam no Histórico do app.
         //  - Panorama começa no mês atual; compras quitadas ficam num grupo recolhido.
+        //  - Barra de status sólida (status-bar-style "default"): no iOS 26.1+/27 o modo
+        //    "black-translucent" ganha um desfoque do sistema no topo e a tela fica curta embaixo.
         //  Mesma estrutura de dados (localStorage) e mesmo formato de envio
         //  ao Google Sheets da revisão 17 — Code.gs não precisa mudar.
         // ================================================================
